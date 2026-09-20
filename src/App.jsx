@@ -11,6 +11,8 @@ import { useState, useEffect, useRef } from 'react';
 /*  Media pertama menjadi gambar sampul kartu project.                 */
 /*                                                                     */
 /*  Foto profil: taruh sebagai src/assets/profile.jpg (.jpeg/.png/.webp)*/
+/*  Sertifikat: taruh sertifikat_magang.pdf & sertifikat_AI_azure.pdf  */
+/*  di src/assets/ (dipakai oleh bagian Experience & Certifications).  */
 /*  Catatan: fitur ini memakai Vite (import.meta.glob).                */
 /* ------------------------------------------------------------------ */
 
@@ -71,10 +73,12 @@ const PAD = "px-6 sm:px-8 lg:px-10";
 
 // ---- Kontak: isi tiga baris ini agar tombolnya muncul di bagian "Let's connect" ----
 // Boleh diisi username / nomor saja, atau URL lengkap.
-const EMAIL = ""; // contoh: "kamu@email.com"
-const WHATSAPP = ""; // nomor dengan kode negara, tanpa "+", contoh: "6281234567890"
-const LINE_ID = ""; // LINE ID, contoh: "radianda"  (atau URL LINE kamu)
-const INSTAGRAM = ""; // username tanpa @, contoh: "radianda.setiawan"
+// Tombol "Email me" menampilkan pilihan Gmail / Outlook. Kosongkan salah satu untuk menyembunyikannya.
+const EMAIL_GMAIL = "setiawanradianda@gmail.com";
+const EMAIL_OUTLOOK = "radianda.setiawan@binus.ac.id";
+const WHATSAPP = "628117761151"; // nomor dengan kode negara, tanpa "+", contoh: "6281234567890"
+const LINE_ID = "radianda123"; // LINE ID, contoh: "radianda"  (atau URL LINE kamu)
+const INSTAGRAM = "radianda_setiawan"; // username tanpa @, contoh: "radianda.setiawan"
 
 const asUrl = (value, build) => (!value ? '' : /^https?:\/\//i.test(value) ? value : build(value));
 
@@ -157,11 +161,107 @@ const skillGroups = [
   },
   {
     title: "Web & backend",
-    items: ["React.js", "Tailwind CSS", "Vite", "ASP.NET Core", "Entity Framework Core", "SQL Server", "Flask", "FastAPI", "Playwright"],
+    items: ["React.js", "Tailwind CSS", "Vite", "ASP.NET Core", "ASP.NET MVC", "ASP.NET Web API", "Entity Framework Core", "Dapper ORM", "SQL Server", "REST APIs", "AngularJS", "Flask", "FastAPI", "Playwright"],
   },
   {
     title: "Cloud & DevOps",
-    items: ["Azure App Services", "Vercel", "Hugging Face Spaces", "Docker", "GitHub Actions", "DVC"],
+    items: ["Azure App Services", "Vercel", "Hugging Face Spaces", "Docker", "GitHub Actions", "DVC", "Git", "GitHub", "GitLab", "CI/CD"],
+  },
+  {
+    title: "Business & domain",
+    items: ["ERP Systems", "Supply Chain Management", "Logistics Management", "Inventory Management", "Invoicing", "Client Billing", "Client Relations"],
+  },
+];
+
+/* ---------------- Pengalaman kerja ----------------
+   Deskripsi di LinkedIn terpotong ("...more"); lengkapi di bagian TODO.
+   Field `file` (opsional) = nama PDF di src/assets, tampil sebagai tombol. */
+// Skill PT Cellbox: dipakai bersama oleh kartu pengalaman dan kartu sertifikat magang
+const CELLBOX_SKILLS = [
+  "ASP.NET MVC", "Model-View-Controller (MVC)", "C#", "Microsoft SQL Server", "Dapper ORM", "Databases", "REST APIs",
+  "CRUD Operations", "Full-Stack Development", "Front-End Development", "Back-End Web Development", "Software Infrastructure",
+];
+
+const experiences = [
+  {
+    id: "batavia-satu",
+    role: "Full Stack Engineer",
+    company: "PT Batavia Satu",
+    type: "Part-time",
+    period: "Jun 2026 – Present",
+    location: "West Jakarta, Indonesia · Hybrid",
+    current: true,
+    summary:
+      "Architecting and building end-to-end B2B order and fulfillment workflows for a supply chain management and ERP system.",
+    points: [
+      "Developed modules for Purchase Orders, Sales Orders, Delivery Orders, and Invoicing.",
+      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+    ],
+    skills: [
+      "ASP.NET MVC", "ASP.NET Web API", "C#", "Microsoft SQL Server", "Dapper ORM", "REST APIs", "CRUD Operations",
+      "Enterprise Resource Planning (ERP)", "Supply Chain Management", "Python", "FastAPI", "Web Scraping",
+      "React.js", "AngularJS", "JavaScript", "Front-End Development", "Back-End Web Development", "Software Development",
+      "Software Infrastructure", "Microsoft Azure", "GitHub", "GitLab", "CI/CD", "Teamwork", "Team Leadership",
+    ],
+  },
+  {
+    id: "cellbox",
+    role: "Full Stack Engineer",
+    company: "PT Cellbox",
+    type: "Internship",
+    period: "Jul 2025 – Aug 2025",
+    location: "West Jakarta, Indonesia · On-site",
+    current: false,
+    summary:
+      "Built and maintained end-to-end web applications using the Model-View-Controller (MVC) architecture across the frontend, backend, and relational database layers.",
+    points: [
+      "Built the Omnichannel Messaging & Webhook Integration Service that unifies WeChat and WhatsApp conversations (see the project above).",
+      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+    ],
+    skills: CELLBOX_SKILLS,
+    file: "sertifikat_magang.pdf",
+    fileLabel: "Internship letter (PDF)",
+  },
+  {
+    id: "cipta-duta",
+    role: "Administrator",
+    company: "PT Cipta Duta Mahakarya",
+    type: "Part-time",
+    period: "May 2024 – Aug 2024",
+    location: "Batam City, Riau Islands, Indonesia · On-site",
+    current: false,
+    summary:
+      "Managed end-to-end billing workflows for logistics transactions, from drafting and verifying invoices to reconciling them with delivery orders.",
+    points: [
+      "Reconciled invoices against delivery orders to keep every logistics transaction accurate.",
+      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+    ],
+    skills: [
+      "Supply Chain Management", "Logistics Management", "Invoicing", "Client Billing",
+      "Inventory Management", "Client Relations", "Administrative Assistance",
+    ],
+  },
+];
+
+/* ---------------- Sertifikat ---------------- */
+const certifications = [
+  {
+    id: "cellbox-cert",
+    title: "Internship Certificate, PT Cellbox",
+    issuer: "PT Cellbox",
+    issued: "Jul 2025",
+    text: "Proof of completing a full-stack software development internship, covering MVC-based web development with ASP.NET MVC, C#, REST APIs, and SQL Server.",
+    skills: CELLBOX_SKILLS,
+    file: "sertifikat_magang.pdf",
+  },
+  {
+    id: "ai900",
+    title: "Microsoft AI-900T00-A: Belajar AI dari Dasar",
+    issuer: "Microsoft",
+    issued: "Mar 2026",
+    text: "Foundational course on artificial intelligence concepts and Azure AI services, including machine learning and generative AI.",
+    skills: ["Azure AI", "Machine Learning"],
+    file: "sertifikat_AI_azure.pdf",
   },
 ];
 
@@ -559,9 +659,9 @@ const projects = [
     short: "Omnichannel",
     badge: null,
     cover: ["#276650", "#2f5a75"],
-    category: "Backend Development",
+    category: "Web Development",
     period: "Jul 2026",
-    role: "Backend Engineer Intern",
+    role: "Full-Stack Engineer / Developer Intern",
     company: "PT Cellbox",
     summary: "A standalone messaging backend that brings WeChat and WhatsApp conversations into one API, later merged into a larger enterprise management system.",
     overview: "Built during my internship at PT Cellbox, this is a standalone backend messaging engine that unifies client communications from WeChat and WhatsApp behind one consistent API. It ran as an independent, scalable communication service before being successfully merged into a larger enterprise management system.",
@@ -656,7 +756,6 @@ const projects = [
     period: "Feb – Jun 2026",
     role: "Full-Stack Engineer",
     company: null,
-    team: "Group 19, BINUS University",
     contribution: "Built the ASP.NET Core REST API and SQL Server data layer (DTOs, controllers for books, users, and transactions, JWT auth, password-reset emails), integrated it with the React frontend, and set up the Azure and Vercel deployment.",
     summary: "A web-based library lending system for BINUS with QR and barcode self-service checkout, role-based access, automated fines, and a full SRS with UML and ERD.",
     overview: "Bookuger is an online-to-offline library circulation system for BINUS University, built as a software engineering project that followed the Waterfall model from a 98-page Software Requirements Specification through implementation and deployment. Students browse the catalog and get a digital member ID. Library admins scan the member's QR code and the book's barcode at the desk to check books out and in. The goal: shorter queues, less manual data entry for librarians, and an accurate log of inventory and loans.",
@@ -1120,12 +1219,38 @@ function CardMedia({ project, media }) {
   );
 }
 
-// Galeri di halaman detail: gambar / video utama + keterangan + thumbnail
+// Galeri di halaman detail: gambar / video utama + panah kiri/kanan + keterangan + thumbnail
 function MediaViewer({ project, media }) {
   const [active, setActive] = useState(0);
+  const thumbsRef = useRef(null);
+  const touchX = useRef(null);
+  const count = media.length;
   const current = media[active];
 
-  if (media.length === 0) {
+  const go = (dir) => setActive((a) => (a + dir + count) % count);
+
+  // Panah keyboard kiri/kanan
+  useEffect(() => {
+    if (count < 2) return undefined;
+    const onKey = (e) => {
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight') setActive((a) => (a + 1) % count);
+      else if (e.key === 'ArrowLeft') setActive((a) => (a - 1 + count) % count);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [count]);
+
+  // Thumbnail aktif selalu terlihat di tengah barisnya
+  useEffect(() => {
+    const box = thumbsRef.current;
+    const el = box && box.children[active];
+    if (!box || !el) return;
+    box.scrollTo({ left: el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2, behavior: REDUCED ? 'auto' : 'smooth' });
+  }, [active]);
+
+  if (count === 0) {
     const expected = (project.media || []).map((m) => (typeof m === 'string' ? m : m.file)).filter(Boolean);
     return (
       <div className="aspect-video w-full rounded-3xl border-2 border-dashed border-white/25 bg-white/[0.04] flex flex-col items-center justify-center gap-4 text-center p-8">
@@ -1153,20 +1278,56 @@ function MediaViewer({ project, media }) {
     );
   }
 
+  const arrow =
+    'absolute top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-sm border border-white/30 transition-colors';
+
   return (
     <div>
-      <div className="aspect-video w-full rounded-3xl overflow-hidden bg-black/30 border border-white/15">
+      <div
+        className="relative aspect-video w-full rounded-3xl overflow-hidden bg-black/30 border border-white/15"
+        onTouchStart={(e) => {
+          touchX.current = e.touches[0].clientX;
+        }}
+        onTouchEnd={(e) => {
+          if (touchX.current === null || count < 2) return;
+          const dx = e.changedTouches[0].clientX - touchX.current;
+          touchX.current = null;
+          if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+        }}
+      >
         {current.type === 'video' ? (
           <video key={current.src} src={current.src} controls playsInline preload="metadata" className="fade-in w-full h-full object-contain" />
         ) : (
           <img key={current.src} src={current.src} alt={current.caption || `${project.title}, image ${active + 1}`} className="fade-in w-full h-full object-contain" />
         )}
+
+        {count > 1 && (
+          <>
+            <button type="button" onClick={() => go(-1)} aria-label="Previous image" className={`${arrow} left-3`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button type="button" onClick={() => go(1)} aria-label="Next image" className={`${arrow} right-3`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <span className="absolute top-3 right-3 z-10 rounded-full bg-black/55 backdrop-blur-sm border border-white/25 px-3 py-1 text-xs tabular-nums">
+              {active + 1} / {count}
+            </span>
+          </>
+        )}
       </div>
 
-      {current.caption && <p className="mt-3 text-sm text-white/70 leading-relaxed">{current.caption}</p>}
+      {current.caption && (
+        <p className="mt-3 text-sm text-white/70 leading-relaxed" aria-live="polite">
+          {current.caption}
+        </p>
+      )}
 
-      {media.length > 1 && (
-        <div className="flex gap-3 mt-4 overflow-x-auto pb-1">
+      {count > 1 && (
+        <div ref={thumbsRef} className="relative flex gap-3 mt-4 overflow-x-auto pb-1">
           {media.map((m, i) => (
             <button
               key={m.src}
@@ -1292,6 +1453,231 @@ function ProjectCard({ project, onOpen }) {
   );
 }
 
+// Daftar skill yang bisa dilipat (supaya kartu pengalaman tidak terlalu panjang)
+function ExperienceSkills({ skills, initial = 8 }) {
+  const [open, setOpen] = useState(false);
+  const shown = open ? skills : skills.slice(0, initial);
+  const hidden = skills.length - initial;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {shown.map((s) => (
+        <Chip key={s}>{s}</Chip>
+      ))}
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="px-3 py-1 rounded-full border border-dashed border-white/35 text-white/80 hover:bg-white/10 text-xs transition-colors"
+        >
+          {open ? 'Show less' : `+${hidden} more`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Tombol "Email me": memilih Gmail atau Outlook, lalu membuka layar tulis email di tab baru
+function EmailMenu() {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const options = [
+    {
+      label: 'Gmail',
+      address: EMAIL_GMAIL,
+      href: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(EMAIL_GMAIL)}`,
+    },
+    {
+      label: 'Outlook',
+      address: EMAIL_OUTLOOK,
+      href: `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(EMAIL_OUTLOOK)}`,
+    },
+  ].filter((o) => o.address);
+
+  if (options.length === 0) return null;
+
+  return (
+    <div ref={boxRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="btn-shine inline-flex items-center gap-2 px-6 py-3 bg-white text-[#0b1024] font-semibold rounded-full hover:bg-white/90 transition-colors"
+      >
+        Email me
+        <svg
+          className={`w-4 h-4 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="fade-in absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 w-72 rounded-2xl bg-[#141a36] border border-white/25 shadow-xl shadow-black/40 p-2 text-left"
+        >
+          {options.map((o) => (
+            <a
+              key={o.label}
+              role="menuitem"
+              href={o.href}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setOpen(false)}
+              className="group flex items-center justify-between gap-3 rounded-xl px-4 py-3 hover:bg-white/10 transition-colors"
+            >
+              <span>
+                <span className="block text-sm font-semibold">{o.label}</span>
+                <span className="block text-xs text-white/65 break-all">{o.address}</span>
+              </span>
+              <ExternalIcon />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Pengalaman kerja (timeline) + sertifikat
+function ExperienceSection() {
+  return (
+    <section id="experience" className={`${PAD} py-20 scroll-mt-20`}>
+      <div className={WRAP}>
+        <Reveal className="mb-10 max-w-2xl">
+          <h2 className="f-display text-2xl sm:text-3xl font-bold tracking-tight mb-2">Work experience</h2>
+          <p className="text-white/75 text-base sm:text-lg">
+            Building real business systems alongside my AI work: ERP modules, messaging backends, and logistics operations.
+          </p>
+        </Reveal>
+
+        <ol className="relative border-l border-white/20 ml-3 space-y-8">
+          {experiences.map((e, i) => {
+            const fileUrl = e.file ? getAsset(e.file) : undefined;
+            return (
+              <li key={e.id} className="relative ml-6">
+                <span
+                  aria-hidden="true"
+                  className={`absolute -left-[1.9rem] top-7 w-3 h-3 rounded-full border-2 border-white/60 ${
+                    e.current ? 'bg-emerald-300' : 'bg-[#101730]'
+                  }`}
+                />
+                <Reveal delay={i * 80}>
+                  <div className="rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/15 p-5 sm:p-6 transition-colors duration-300 hover:bg-white/[0.11]">
+                    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 mb-2">
+                      <div>
+                        <h3 className="f-display text-lg font-bold">{e.role}</h3>
+                        <p className="text-white/85 text-sm">
+                          {e.company} · {e.type}
+                        </p>
+                      </div>
+                      <div className="text-sm text-white/65 sm:text-right">
+                        <p className="flex items-center gap-2 sm:justify-end">
+                          {e.current && (
+                            <span className="rounded-full bg-emerald-400/15 border border-emerald-300/40 text-emerald-100 px-2 py-0.5 text-xs">
+                              Current
+                            </span>
+                          )}
+                          {e.period}
+                        </p>
+                        <p>{e.location}</p>
+                      </div>
+                    </div>
+
+                    <p className="text-white/80 text-[15px] leading-relaxed mb-3">{e.summary}</p>
+
+                    {e.points.length > 0 && (
+                      <ul className="list-disc pl-5 space-y-1 text-white/80 text-[15px] leading-relaxed mb-4">
+                        {e.points.map((p) => (
+                          <li key={p}>{p}</li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <ExperienceSkills skills={e.skills} />
+
+                    {fileUrl && (
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/30 hover:bg-white/20 px-4 py-2 text-sm font-semibold transition-colors"
+                      >
+                        {e.fileLabel || 'View document'} <ExternalIcon />
+                      </a>
+                    )}
+                  </div>
+                </Reveal>
+              </li>
+            );
+          })}
+        </ol>
+
+        {/* Sertifikat */}
+        <Reveal className="mt-20 mb-8 max-w-2xl">
+          <h2 className="f-display text-2xl sm:text-3xl font-bold tracking-tight mb-2">Licenses &amp; certifications</h2>
+          <p className="text-white/75 text-base sm:text-lg">
+            Formal proof of the internship and the AI fundamentals behind my projects.
+          </p>
+        </Reveal>
+
+        <div className="grid md:grid-cols-2 gap-5">
+          {certifications.map((c, i) => {
+            const url = getAsset(c.file);
+            return (
+              <Reveal key={c.id} delay={i * 90} className="h-full">
+                <div className="h-full flex flex-col rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/15 p-5 sm:p-6 transition-colors duration-300 hover:bg-white/[0.11]">
+                  <p className="text-sm text-white/65 mb-1">
+                    {c.issuer} · Issued {c.issued}
+                  </p>
+                  <h3 className="f-display text-lg font-bold mb-2">{c.title}</h3>
+                  <p className="text-white/80 text-[15px] leading-relaxed mb-4">{c.text}</p>
+                  <div className="mb-5">
+                    <ExperienceSkills skills={c.skills} />
+                  </div>
+                  {url && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group btn-shine mt-auto self-start inline-flex items-center gap-2 rounded-full bg-white text-[#0b1024] hover:bg-white/90 px-4 py-2 text-sm font-semibold transition-colors"
+                    >
+                      Show credential <ExternalIcon />
+                    </a>
+                  )}
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  App                                                                */
 /* ------------------------------------------------------------------ */
@@ -1342,7 +1728,7 @@ export default function App() {
       setActiveSection('');
       return undefined;
     }
-    const ids = ['home', 'about', 'ai-projects', 'software-projects', 'contact'];
+    const ids = ['home', 'about', 'experience', 'ai-projects', 'software-projects', 'contact'];
     const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
     const io = new IntersectionObserver(
       (entries) => {
@@ -1399,12 +1785,13 @@ export default function App() {
   const navLinks = [
     { label: 'Home', id: 'home', match: ['home'], hideOnMobile: true },
     { label: 'About', id: 'about', match: ['about'] },
+    { label: 'Experience', id: 'experience', match: ['experience'] },
     { label: 'Projects', id: 'ai-projects', match: ['ai-projects', 'software-projects'] },
     { label: 'Contact', id: 'contact', match: ['contact'] },
   ];
 
   const marqueeTop = [...skillGroups[0].items, ...skillGroups[1].items];
-  const marqueeBottom = [...skillGroups[2].items, ...skillGroups[3].items];
+  const marqueeBottom = [...skillGroups[2].items, ...skillGroups[3].items, ...skillGroups[4].items];
 
   return (
     <div className="relative min-h-screen text-white f-body overflow-x-hidden">
@@ -1541,10 +1928,10 @@ export default function App() {
               <div className={`${WRAP} grid lg:grid-cols-[1fr_1.6fr] gap-10 items-start`}>
                 <Reveal>
                   <h2 className="f-display text-2xl sm:text-3xl font-bold tracking-tight mb-4">
-                    Models, and the software around them
+                    Bridging AI research and software engineering
                   </h2>
-                  <p className="text-white/80 text-base sm:text-lg leading-relaxed max-w-md">
-                    I work on both sides of an AI product: training and evaluating the models, and building the web and backend services that put them in front of people.
+                  <p className="text-white/80 text-base sm:text-lg leading-relaxed max-w-lg">
+                    I specialize in the end-to-end lifecycle of an AI product. On one side, I design, train, and rigorously evaluate machine learning models—spanning NLP, computer vision, and predictive analytics. On the other, I architect the robust backend APIs and responsive web interfaces that bring them to life. I don't just build models that sit in notebooks; I transform them into scalable, real-time applications that solve actual problems for real users.
                   </p>
                 </Reveal>
 
@@ -1568,6 +1955,9 @@ export default function App() {
                 </div>
               </div>
             </section>
+
+            {/* Experience & certifications */}
+            <ExperienceSection />
 
             {/* Projects: dipisah AI dan Software */}
             <section id="projects" className={`${PAD} py-20`}>
@@ -1760,11 +2150,7 @@ export default function App() {
               </p>
 
               <div className="flex flex-wrap gap-3 justify-center">
-                {EMAIL && (
-                  <a href={`mailto:${EMAIL}`} className="btn-shine px-6 py-3 bg-white text-[#0b1024] font-semibold rounded-full hover:bg-white/90 transition-colors">
-                    Email me
-                  </a>
-                )}
+                <EmailMenu />
                 {visibleSocials.map((s) => (
                   <a
                     key={s.label}
