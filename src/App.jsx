@@ -1,83 +1,163 @@
 import { useState, useEffect, useRef } from 'react';
 
 /* ------------------------------------------------------------------ */
-/*  MEDIA (GAMBAR & VIDEO) — otomatis dibaca dari src/assets           */
+/*  MEDIA & DOKUMEN — dibaca otomatis dari folder src/assets           */
 /*                                                                     */
-/*  Cukup taruh file di:  src/assets/projects/                         */
-/*    drowsiness.png  atau  drowsiness.mp4   -> media utama            */
-/*    drowsiness-2.png, drowsiness-3.mp4     -> galeri tambahan        */
-/*  Nama file = "slug" project (lihat field `slug` di data di bawah).  */
-/*  Format: png, jpg, jpeg, webp, gif, mp4, webm (huruf kecil).        */
+/*  1. Taruh gambar / video / PDF di src/assets/ (subfolder juga boleh)*/
+/*  2. Tulis NAMA FILE-nya di project:                                 */
+/*       media: ["rm1.jpeg", { file: "rm2.jpeg", caption: "..." }]     */
+/*       links: [{ label: "Read the report", file: "laporan.pdf" }]    */
+/*  Format media: png, jpg, jpeg, webp, gif, mp4, webm (huruf kecil).  */
+/*  Media pertama menjadi gambar sampul kartu project.                 */
 /*                                                                     */
-/*  Foto profil: taruh di src/assets/profile.jpg (atau .png / .webp).  */
+/*  Foto profil: taruh sebagai src/assets/profile.jpg (.jpeg/.png/.webp)*/
 /*  Catatan: fitur ini memakai Vite (import.meta.glob).                */
 /* ------------------------------------------------------------------ */
 
-const mediaFiles = import.meta.glob('./assets/projects/*.{png,jpg,jpeg,webp,gif,mp4,webm}', {
+const assetModules = import.meta.glob('./assets/**/*.{png,jpg,jpeg,webp,gif,mp4,webm,pdf}', {
   eager: true,
   query: '?url',
   import: 'default',
 });
 
-const profileFiles = import.meta.glob('./assets/profile.{jpg,jpeg,png,webp}', {
-  eager: true,
-  query: '?url',
-  import: 'default',
+const assetByName = {};
+Object.entries(assetModules).forEach(([path, url]) => {
+  assetByName[path.split('/').pop().toLowerCase()] = url;
 });
+const getAsset = (name) => (name ? assetByName[String(name).toLowerCase()] : undefined);
 
-const PROFILE_PHOTO = Object.values(profileFiles)[0] || null;
+const PROFILE_PHOTO =
+  getAsset('profile.jpg') || getAsset('profile.jpeg') || getAsset('profile.png') || getAsset('profile.webp') || null;
+
 const IS_DEV = Boolean(import.meta.env && import.meta.env.DEV);
 
-function getMedia(slug) {
-  const items = [];
-  Object.entries(mediaFiles).forEach(([path, src]) => {
-    const file = path.split('/').pop();
-    const match = file.match(/^(.+?)(?:-(\d+))?\.(\w+)$/);
-    if (!match || match[1].toLowerCase() !== slug) return;
-    items.push({
-      order: match[2] ? Number(match[2]) : 1,
-      type: /^(mp4|webm)$/i.test(match[3]) ? 'video' : 'image',
-      src,
-    });
-  });
-  return items.sort((a, b) => a.order - b.order);
+// Pengguna yang mematikan animasi di sistemnya akan melihat versi statis.
+const REDUCED =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Mengubah daftar `media` project menjadi [{ src, type, caption }]; file yang belum ada dilewati.
+function getProjectMedia(p) {
+  return (p.media || [])
+    .map((m) => (typeof m === 'string' ? { file: m } : m))
+    .map((m) => {
+      const src = m.src || getAsset(m.file);
+      if (!src) return null;
+      const name = m.file || '';
+      return {
+        src,
+        type: m.type || (/\.(mp4|webm)$/i.test(name) ? 'video' : 'image'),
+        caption: m.caption || '',
+      };
+    })
+    .filter(Boolean);
 }
 
-// Jika kamu lebih suka import manual, isi `media` di project:
-//   media: [{ type: 'video', src: myVideo }, { type: 'image', src: myImage }]
-const getProjectMedia = (p) => (p.media && p.media.length ? p.media : getMedia(p.slug));
+// Mengubah `links` project menjadi [{ label, url, primary }]; link tanpa tujuan disembunyikan.
+function getProjectLinks(p) {
+  return (p.links || [])
+    .map((l) => ({ ...l, url: l.file ? getAsset(l.file) || l.href : l.href }))
+    .filter((l) => l.url && l.url !== '#');
+}
 
 /* ------------------------------------------------------------------ */
 /*  DATA — edit bagian ini saja untuk mengganti isi portofolio         */
 /* ------------------------------------------------------------------ */
 
-// Lebar konten utama (ubah angka 1400px kalau mau lebih lebar / sempit)
-const WRAP = "mx-auto w-full max-w-[1400px]";
-const PAD = "px-6 sm:px-10 lg:px-16";
+// Lebar konten utama (ubah max-w-6xl menjadi max-w-5xl / max-w-7xl kalau mau lebih sempit / lebar)
+const WRAP = "mx-auto w-full max-w-6xl";
+const PAD = "px-6 sm:px-8 lg:px-10";
+
+// ---- Kontak: isi tiga baris ini agar tombolnya muncul di bagian "Let's connect" ----
+// Boleh diisi username / nomor saja, atau URL lengkap.
+const EMAIL = ""; // contoh: "kamu@email.com"
+const WHATSAPP = ""; // nomor dengan kode negara, tanpa "+", contoh: "6281234567890"
+const LINE_ID = ""; // LINE ID, contoh: "radianda"  (atau URL LINE kamu)
+const INSTAGRAM = ""; // username tanpa @, contoh: "radianda.setiawan"
+
+const asUrl = (value, build) => (!value ? '' : /^https?:\/\//i.test(value) ? value : build(value));
 
 // Tombol dengan href kosong atau "#" otomatis disembunyikan.
-const EMAIL = ""; // contoh: "kamu@email.com"
 const SOCIALS = [
-  {
-    label: "LinkedIn",
-    href: "https://www.linkedin.com/in/radianda-setiawan-22287225a",
-    path: "M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z",
-  },
-  {
-    label: "GitHub",
-    href: "https://github.com/chicknug19",
-    path: "M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z",
-  },
+  { label: "LinkedIn", icon: "linkedin", href: "https://www.linkedin.com/in/radianda-setiawan-22287225a" },
+  { label: "GitHub", icon: "github", href: "https://github.com/chicknug19" },
+  { label: "WhatsApp", icon: "whatsapp", href: asUrl(WHATSAPP, (v) => `https://wa.me/${v.replace(/\D/g, '')}`) },
+  { label: "LINE", icon: "line", href: asUrl(LINE_ID, (v) => `https://line.me/ti/p/~${v.replace(/^~/, '')}`) },
+  { label: "Instagram", icon: "instagram", href: asUrl(INSTAGRAM, (v) => `https://instagram.com/${v.replace(/^@/, '')}`) },
+];
+
+const FILLED_ICONS = {
+  linkedin:
+    "M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z",
+  github:
+    "M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z",
+};
+
+function SocialIcon({ name }) {
+  if (FILLED_ICONS[name]) {
+    return (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d={FILLED_ICONS[name]} />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      {name === 'instagram' && (
+        <>
+          <rect x="3" y="3" width="18" height="18" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17.4" cy="6.6" r="0.6" fill="currentColor" />
+        </>
+      )}
+      {name === 'whatsapp' && (
+        <>
+          <path d="M3 21l1.8-5.2A8.5 8.5 0 1 1 8.2 19.3L3 21z" />
+          <path d="M9.2 8.6c-.3.8.1 2 1.2 3.2s2.4 1.9 3.3 1.7c.6-.1 1-.6 1.1-1l-1.4-.9-.7.6c-.7-.3-1.6-1-2-1.8l.5-.8-.9-1.4c-.4 0-.9.3-1.1.4z" />
+        </>
+      )}
+      {name === 'line' && (
+        <>
+          <path d="M12 3C6.9 3 3 6.3 3 10.4c0 2.5 1.5 4.7 3.8 6.1-.2.9-.6 2.2-.7 2.6 0 0 0 .3.2.4.2.1.4 0 .4 0 .5-.1 2.4-1.5 3.3-2.1.5.1 1.1.1 1.6.1 5.1 0 9-3.3 9-7.4S17.1 3 12 3z" />
+          <circle cx="8.5" cy="10.5" r="0.7" fill="currentColor" />
+          <circle cx="12" cy="10.5" r="0.7" fill="currentColor" />
+          <circle cx="15.5" cy="10.5" r="0.7" fill="currentColor" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+// Kalimat yang diketik otomatis di hero: "I build ____"
+const TYPED_PHRASES = [
+  "real-time computer vision systems",
+  "NLP models for Indonesian text",
+  "full-stack machine learning apps",
+  "REST APIs deployed on Azure",
 ];
 
 const skillGroups = [
   {
+    title: "Languages",
+    items: ["Python", "C#", "TypeScript", "JavaScript", "SQL"],
+  },
+  {
     title: "AI & machine learning",
-    items: ["Python", "Scikit-Learn", "Pandas", "NumPy", "OpenCV", "Dlib", "Gemini API", "IndoBERT", "XLM-RoBERTa", "Random Forest", "SMOTE-Tomek", "RAG"],
+    items: ["Scikit-Learn", "Pandas", "NumPy", "OpenCV", "Dlib", "Gemini API", "IndoBERT", "XLM-RoBERTa", "Random Forest", "SMOTE-Tomek", "RAG"],
   },
   {
     title: "Web & backend",
-    items: ["React.js", "Tailwind CSS", "Vite", "ASP.NET Core", "C#", "Entity Framework Core", "SQL Server", "Flask", "FastAPI", "Playwright"],
+    items: ["React.js", "Tailwind CSS", "Vite", "ASP.NET Core", "Entity Framework Core", "SQL Server", "Flask", "FastAPI", "Playwright"],
   },
   {
     title: "Cloud & DevOps",
@@ -102,17 +182,19 @@ const sections = [
 ];
 
 /*
-  Cara mengisi `links` (tombol di halaman detail):
-    { label: "Live demo", href: "https://...", primary: true }   <- tombol putih
-    { label: "View on GitHub", href: "https://github.com/..." }  <- tombol outline
-  Isi link live demo (Vercel dll.) dengan menambahkan objek baru di array `links`.
+  Field project:
+    media:        ["file1.jpeg", { file: "file2.jpeg", caption: "keterangan" }, "demo.mp4"]
+    links:        [{ label, href, primary? }]  atau  [{ label, file: "nama.pdf" }] untuk PDF di src/assets
+                  Link `primary: true` tampil sebagai tombol putih.
+    team:         "Group of 5 at BINUS University"   -> baris "Team" di sidebar detail
+    contribution: "..."                              -> baris "My contribution" di sidebar detail
+  Kartu di halaman utama menampilkan 2 `highlights` pertama; halaman detail menampilkan semuanya.
 */
 const projects = [
   /* ---------------- AI ---------------- */
   {
     id: 1,
     group: "ai",
-    slug: "paper",
     title: "Evaluating the Financial Impact of Cost-Sensitive Random Forest and SMOTE-Tomek in Fraud Detection",
     short: "Research",
     badge: "Accepted at COMPGINEER2026",
@@ -121,8 +203,10 @@ const projects = [
     period: "Apr – Aug 2026",
     role: "Co-author & ML Researcher",
     company: null,
+    team: "4 authors, BINUS University",
+    contribution: "Methodology, software, validation, investigation, and manuscript review and editing.",
     summary: "A conference paper on cutting real-world financial loss in credit card fraud detection by combining SMOTE-Tomek resampling with a Cost-Sensitive Random Forest.",
-    overview: "A machine learning research paper accepted at COMPGINEER2026. It studies how to reduce real financial loss in credit card fraud detection under extreme class imbalance, using SMOTE-Tomek resampling together with a Cost-Sensitive Random Forest. Every model is judged by projected monetary impact as well as PR-AUC and minority recall.",
+    overview: "A machine learning research paper accepted at COMPGINEER2026, a Nutral Conferences event, and presented in its online session. It studies how to reduce real financial loss in credit card fraud detection under extreme class imbalance, using SMOTE-Tomek resampling together with a Cost-Sensitive Random Forest. Every model is judged by projected monetary impact as well as PR-AUC and minority recall.",
     pointsHeading: "Research highlights",
     points: [
       {
@@ -143,7 +227,11 @@ const projects = [
       },
       {
         title: "Evaluation against honest baselines",
-        text: "Benchmarked against SMOTE + Random Forest using PR-AUC, minority recall, false negatives, and projected monetary impact. The plain SMOTE baseline still had the lowest loss on this dataset (Rp 90.7M), so the paper concludes that the benefit depends on dataset topology and penalty calibration.",
+        text: "Benchmarked four configurations (SMOTE + RF, SMOTE-Tomek + RF, and both with the cost-sensitive RF) using PR-AUC, minority recall, false negatives, and projected monetary impact. The plain SMOTE baseline still had the lowest loss on this dataset (Rp 90.7M), so the paper concludes that the benefit depends on dataset topology and penalty calibration.",
+      },
+      {
+        title: "Presented at the conference",
+        text: "Presented the work in the conference's online session, walking the audience through the pipeline from the 284,807-transaction raw dataset, through robust scaling and resampling, to classification and a financial-loss estimate.",
       },
     ],
     highlights: [
@@ -151,16 +239,18 @@ const projects = [
       { value: "0.172%", label: "fraud share of 284,807 transactions" },
     ],
     tech: ["Python", "Scikit-Learn", "Random Forest", "SMOTE-Tomek", "Cost-sensitive learning", "PR-AUC"],
+    media: [
+      { file: "rm1.jpeg", caption: "Title slide from the COMPGINEER 2026 online presentation" },
+      { file: "rm2.jpeg", caption: "Methodology slide: from 284,807 raw transactions to a financial-loss estimate" },
+    ],
     links: [
-      // Taruh file PDF di folder `public/` dengan nama paper.pdf agar link ini berfungsi.
-      { label: "Read the paper (PDF)", href: "/paper.pdf", primary: true },
+      { label: "Read the paper (PDF)", file: "paper_rm.pdf", primary: true },
       { label: "View on GitHub", href: "https://github.com/chicknug19/research-method" },
     ],
   },
   {
     id: 2,
     group: "ai",
-    slug: "scraper",
     title: "Autonomous AI-Powered E-Commerce Scraping Engine",
     short: "Scraper",
     badge: null,
@@ -169,8 +259,8 @@ const projects = [
     period: "Aug – Sep 2026",
     role: "AI & Backend Engineer",
     company: null,
-    summary: "An autonomous engine that collects large-scale competitor product data from Shopee, filters it with Gemini, and solves slider CAPTCHAs with OpenCV.",
-    overview: "An enterprise-grade, autonomous web scraping engine that extracts large-scale competitor product data from e-commerce platforms (Shopee) for market analysis and business intelligence. It is designed around fault tolerance, AI integration, and advanced anti-bot evasion.",
+    summary: "An autonomous engine that collects large-scale competitor product data from Shopee and Tokopedia, filters it with Gemini, and solves slider CAPTCHAs with OpenCV.",
+    overview: "An enterprise-grade, autonomous web scraping engine that extracts large-scale competitor product data from e-commerce platforms (Shopee and Tokopedia) for market analysis and business intelligence. It is designed around fault tolerance, AI integration, and advanced anti-bot evasion.",
     pointsHeading: "What I built",
     points: [
       {
@@ -196,12 +286,12 @@ const projects = [
     ],
     highlights: [],
     tech: ["Python", "Gemini API", "Playwright", "OpenCV", "FastAPI", "SQL Server", "pyodbc"],
+    media: ["scrape.jpeg"],
     links: [{ label: "View on GitHub", href: "https://github.com/chicknug19/scraping_ecom" }],
   },
   {
     id: 3,
     group: "ai",
-    slug: "hoax",
     title: "Smart Hoax Detector",
     short: "Hoax",
     badge: null,
@@ -210,42 +300,70 @@ const projects = [
     period: "May – Jun 2026",
     role: "NLP Engineer",
     company: null,
-    summary: "An AI web app that classifies Indonesian political misinformation with a fine-tuned IndoBERT (99.39% Macro F1) and shows live fact-checking references.",
-    overview: "An end-to-end web application built to fight political misinformation in Indonesia. It combines state-of-the-art NLP transformers with a Hybrid RAG (Retrieval-Augmented Generation) search pipeline, so it not only flags fake news but also shows real-time fact-checking references.",
+    team: "Group of 4, BINUS University",
+    summary: "An AI web app that classifies Indonesian political news as fact or hoax with a fine-tuned IndoBERT (99.39% Macro F1) and shows live fact-checking references.",
+    overview: "An end-to-end system for fighting political misinformation in Indonesia. The research side benchmarks five NLP architectures under identical conditions on a balanced corpus of Indonesian political news. The product side wraps the best models in a decoupled cloud app that also pulls live references from the web. The app is deliberately limited to political news: the models were trained on that domain, and text from unrelated areas such as health or entertainment would degrade accuracy.",
     pointsHeading: "What I built",
     points: [
       {
-        title: "NLP model engineering",
-        text: "Ran a comparative ablation study across 5 models: SVM, 1D-CNN, BiLSTM + Attention, XLM-RoBERTa, and IndoBERT V2. A fine-tuned IndoBERT performed best with a peak Macro F1-Score of 99.39%, decoding Indonesian stylometric variations accurately.",
+        title: "Balanced corpus from four sources",
+        text: "Combined roughly 30,000 articles: CNN Indonesia, Kompas, and Tempo as the 'FAKTA' (fact) class, and debunked items from TurnBackHoax as the 'HOAKS' (hoax) class. The majority class was downsampled to a strict 50:50 ratio before an 80/20 split, leaving 4,113 unseen test samples (2,019 fact, 2,094 hoax).",
       },
       {
         title: "Data engineering and leakage prevention",
-        text: "Processed 30,000+ articles with strict downsampling and Regex-based structural cleaning that removes media watermarks and journalistic footprints, so the models learn from the narrative itself instead of source bias.",
+        text: "Regex-based structural cleaning removes HTML, URLs, media watermarks, and journalistic footprints, so the models learn from the narrative itself instead of source bias. The test set was isolated before TF-IDF fitting and tokenization, so no test information leaks into training.",
+      },
+      {
+        title: "Five-model ablation study",
+        text: "Compared SVM with TF-IDF (unigrams and bigrams, 20,000 features), 1D-CNN, BiLSTM with Attention, XLM-RoBERTa, and IndoBERT V2. Macro F1 climbed from 98.47% (1D-CNN) and 98.49% (SVM) through 98.69% (BiLSTM) and 99.12% (XLM-RoBERTa) to 99.39% for IndoBERT, which made only 25 errors across 4,113 test articles.",
+      },
+      {
+        title: "Fair, conservative training setup",
+        text: "Transformers were fine-tuned with the Hugging Face Trainer under identical constraints: 2 epochs, learning rate 2e-5, weight decay 0.01, 100 warmup steps, and a 128-token maximum sequence length, to avoid memorizing the training set.",
+      },
+      {
+        title: "Explainability and stylometry",
+        text: "Extracted the linear SVM's coefficients to see which words push a text toward 'hoax' (emotional, deceptive vocabulary) or 'fact' (neutral journalistic terms). The study attributes the near-perfect scores to the models decoding style: formal PUEBI journalism versus informal, capitalized, emotive user-generated hoaxes.",
       },
       {
         title: "Decoupled cloud architecture",
-        text: "A React.js frontend deployed on Vercel, backed by an asynchronous FastAPI inference service hosted on Hugging Face Spaces.",
+        text: "A React.js frontend deployed on Vercel, backed by an asynchronous FastAPI inference service hosted on Hugging Face Spaces that serves the fine-tuned IndoBERT and XLM-RoBERTa models.",
       },
       {
-        title: "Real-time fact-checking",
-        text: "A DuckDuckGo web-scraping module provides live factual validation, with an automated fallback to the Wikipedia API that keeps the service running during rate-limiting events.",
+        title: "Real-time fact-checking with a safety net",
+        text: "A DuckDuckGo web-scraping module provides live factual validation. If it hits rate limits, timeouts, or failures, the query automatically falls back to the Wikipedia API, so the service keeps running during high traffic.",
+      },
+      {
+        title: "What users see",
+        text: "Users paste an article and press the detect button. The result panel shows a FAKTA or HOAKS verdict with a confidence bar and explains it in terms of writing style, for example that the text is 98.21% similar to official journalistic reporting. Below it, cards with related web references let users open the original sources.",
       },
       {
         title: "CI/CD automation",
-        text: "A GitHub Actions pipeline delivers seamless backend updates.",
+        text: "A GitHub Actions pipeline deploys every push to the main branch to the Hugging Face backend, authenticated with a write token stored as an encrypted GitHub secret.",
       },
     ],
     highlights: [
-      { value: "99.39%", label: "peak Macro F1 with IndoBERT" },
-      { value: "30,000+", label: "articles processed" },
+      { value: "99.39%", label: "peak Macro F1 with IndoBERT V2" },
+      { value: "30,000", label: "articles collected from 4 news and fact-check sources" },
+      { value: "5", label: "architectures benchmarked, from SVM to transformers" },
+      { value: "25", label: "errors out of 4,113 test articles (IndoBERT)" },
     ],
-    tech: ["Python", "IndoBERT", "FastAPI", "React.js", "DuckDuckGo", "Wikipedia API", "GitHub Actions", "Hugging Face Spaces"],
-    links: [{ label: "View on GitHub", href: "https://github.com/chicknug19/AOL-NLP" }],
+    tech: ["Python", "IndoBERT", "XLM-RoBERTa", "TF-IDF + SVM", "FastAPI", "React.js", "DuckDuckGo", "Wikipedia API", "GitHub Actions", "Hugging Face Spaces"],
+    media: [
+      { file: "nlp1.jpeg", caption: "Paste a news article and let IndoBERT analyse its writing style" },
+      { file: "nlp2.jpeg", caption: "Verdict (FAKTA, 98.21% confidence) with related fact-checking references from the web" },
+    ],
+    links: [
+      { label: "Try the live app", href: "https://aol-nlp.vercel.app/", primary: true },
+      { label: "Watch the demo video", href: "https://drive.google.com/file/d/1ISOj4hwmQ6fVlkRpGHzen6UnhEka9cnI/view?usp=sharing" },
+      { label: "View the slides (Canva)", href: "https://canva.link/7a2k00tkpy92ndn" },
+      { label: "Read the report (PDF)", file: "laporan_nlp.pdf" },
+      { label: "View on GitHub", href: "https://github.com/chicknug19/AOL-NLP" },
+    ],
   },
   {
     id: 4,
     group: "ai",
-    slug: "lq45",
     title: "LQ45 Market Direction Predictor",
     short: "LQ45",
     badge: null,
@@ -254,25 +372,39 @@ const projects = [
     period: "Apr – Jun 2026",
     role: "Machine Learning Engineer",
     company: null,
-    summary: "A full-stack ML web app that forecasts the daily direction of Indonesia's LQ45 index using an RBF-kernel SVC and live technical indicators.",
-    overview: "An end-to-end machine learning web application that forecasts the daily directional movement of the Indonesian LQ45 stock index. It combines Support Vector Classification (SVC) with technical indicators calculated on live data to deliver clear market-momentum insights.",
+    team: "Group of 5, BINUS University",
+    contribution: "Model training and tuning, Flask backend, React frontend, and deployment.",
+    summary: "A full-stack ML web app that predicts the next-day direction of Indonesia's LQ45 index with an RBF-kernel SVC, 14 technical indicators, and live market data, tested with five student traders.",
+    overview: "An end-to-end machine learning project that predicts whether the LQ45 index will close higher or lower on the next trading day. The team first considered price regression, then pivoted to binary direction classification because direction is more robust against daily market noise. The final system pairs a tuned Support Vector Classifier with technical indicators computed on live Yahoo Finance data, and was checked in usability tests with five students who trade stocks. Hold-out results stayed close to chance level, and I report that openly below instead of hiding it.",
     pointsHeading: "What I built",
     points: [
       {
-        title: "Model engineering",
-        text: "Built an SVC classifier with a Radial Basis Function (RBF) kernel and tuned the C and gamma parameters with GridSearchCV and 5-fold cross-validation, capturing complex non-linear market patterns without overfitting.",
+        title: "Problem framing and model engineering",
+        text: "Framed the task as binary classification (1 = next close is higher, 0 = lower or flat). Built an SVC with a Radial Basis Function kernel and tuned C and gamma with GridSearchCV and 5-fold cross-validation, using class_weight='balanced' so 'Up' and 'Down' days are treated equally.",
       },
       {
-        title: "Data engineering and leakage prevention",
-        text: "Turned historical market data into 14 technical indicators (EMA, RSI, MACD, Bollinger Bands). Strict sequential splitting (shuffle=False) and isolated feature scaling with StandardScaler keep future data out of training and preserve time-series integrity.",
+        title: "Feature engineering",
+        text: "Turned 649 labelled trading days of LQ45 history into 14 technical indicators across price action, trend (EMA 21/99/200, MACD and signal line), momentum (RSI, Stochastic %K), and volatility (Bollinger Bands). Trading volume was left out because the live API could not supply it reliably.",
+      },
+      {
+        title: "Leakage prevention",
+        text: "A strict sequential 80/20 split (shuffle=False) and a StandardScaler fitted on training data only keep future information out of the model and preserve time-series integrity.",
+      },
+      {
+        title: "Honest evaluation",
+        text: "On the 130-day test set the model reached 50.77% accuracy, 47.17% precision, 40.98% recall, and an F1 of 43.86%, with a ROC-AUC of 0.4994. Five-fold cross-validation averaged 51.61% (std 3.29%). That is no real edge over chance, so the project treats the tool as a supplement to analysis rather than a trading signal, and lists missing volume, news sentiment, and movement magnitude as limits.",
       },
       {
         title: "Decoupled cloud architecture",
-        text: "A responsive React.js frontend deployed on Vercel, paired with a containerized inference backend built with Flask and Docker and hosted on Hugging Face Spaces.",
+        text: "A responsive React.js frontend deployed on Vercel, paired with a containerized Flask backend built with Docker and hosted on Hugging Face Spaces, which serves the pre-trained model as a .pkl file.",
       },
       {
         title: "Real-time data pipeline",
-        text: "Pulls live market data through the Yahoo Finance API (yfinance) and computes features on the fly, so the model always evaluates current conditions without manual data ingestion.",
+        text: "On every request the backend pulls live market data through the Yahoo Finance API (yfinance), computes the indicators, scales them, runs inference, and returns the direction with up/down probabilities and a confidence level. No manual data upload is needed.",
+      },
+      {
+        title: "User testing with five student traders",
+        text: "Testers opened the page and pressed Predict. Average ratings out of 5: smooth flow 4.4, result clarity 4.4, confidence information 4.2, ease of use 4.2, usefulness for decisions 4.0. Their feedback: show a timestamp for the fetched data, explain the probabilities with tooltips, and display core indicator values such as RSI and MACD.",
       },
       {
         title: "CI/CD and MLOps automation",
@@ -281,15 +413,25 @@ const projects = [
     ],
     highlights: [
       { value: "14", label: "technical indicators engineered" },
-      { value: "5-fold", label: "cross-validation for tuning" },
+      { value: "4.4/5", label: "user rating for result clarity (5 testers)" },
+      { value: "0.4994", label: "ROC-AUC, an honest near-chance baseline" },
+      { value: "51.6%", label: "average 5-fold cross-validation accuracy" },
     ],
-    tech: ["Python", "Scikit-Learn", "Flask", "React.js", "Docker", "GitHub Actions", "DVC", "yfinance"],
-    links: [{ label: "View on GitHub", href: "https://github.com/chicknug19/AOL-ML" }],
+    tech: ["Python", "Scikit-Learn", "SVC (RBF)", "GridSearchCV", "Flask", "React.js", "Docker", "GitHub Actions", "DVC", "yfinance"],
+    media: [{ file: "ml1.jpeg", caption: "Prediction result: NAIK (up) with 67.7% confidence and the up/down probabilities" }],
+    links: [
+      { label: "Try the live app", href: "https://aol-ml-nu.vercel.app/", primary: true },
+      {
+        label: "Watch the demo video",
+        href: "https://onedrive.live.com/?qt=allmyphotos&photosData=%2Fshare%2F4AA6A29D10B92604%21se3d6eff93e974b72ad48c7169cbf8a70%3Fithint%3Dvideo%26e%3DgrxjOu%26migratedtospo%3Dtrue&cid=4AA6A29D10B92604&id=4AA6A29D10B92604%21se3d6eff93e974b72ad48c7169cbf8a70&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3YvYy80YWE2YTI5ZDEwYjkyNjA0L0lRRDU3OWJqbHo1eVM2MUl4eGFjdjRwd0FhS3VReGE0ckJJMEgxa1FYOERTWlZJP2U9Z3J4ak91&v=photos",
+      },
+      { label: "View the slides (Canva)", href: "https://canva.link/cot8n43vjqqtbfe" },
+      { label: "View on GitHub", href: "https://github.com/chicknug19/AOL-ML" },
+    ],
   },
   {
     id: 5,
     group: "ai",
-    slug: "drowsiness",
     title: "Driver Drowsiness Detection System (ADAS)",
     short: "Drowsiness",
     badge: null,
@@ -298,21 +440,38 @@ const projects = [
     period: "Apr – Jun 2026",
     role: "Computer Vision Engineer",
     company: null,
-    summary: "A real-time in-cabin safety system that detects driver fatigue and micro-sleep with classical computer vision, running at 31.11 FPS on a local x86 machine.",
-    overview: "A real-time in-cabin monitoring system (Advanced Driver Assistance Systems) that detects driver fatigue and micro-sleep events. Instead of heavy deep neural networks, it relies on deterministic classical computer vision for ultra-low latency and fully interpretable decisions, which suits edge deployment.",
+    team: "Group of 6, BINUS University",
+    summary: "A real-time in-cabin safety system that detects driver fatigue and micro-sleep with classical computer vision (Dlib, EAR, and MAR), reaching 83% recall on drowsy drivers at 31.11 FPS.",
+    overview: "A research-style computer vision project for Advanced Driver Assistance Systems. Most modern driver monitors rely on deep neural networks that are hard to interpret and need GPUs. This system uses deterministic geometry instead: it finds 68 facial landmarks, turns them into an Eye Aspect Ratio and a Mouth Aspect Ratio, and applies transparent thresholds, so every alert can be explained and it runs on ordinary hardware. It follows a 'maximum recall' philosophy, because missing a drowsy driver is far more dangerous than a false alarm.",
     pointsHeading: "What I built",
     points: [
       {
-        title: "Facial landmarks and geometric modeling",
-        text: "Used Dlib's 68-point facial landmark predictor (HOG + Linear SVM) to track facial micromovements and compute the Eye Aspect Ratio (EAR) and Mouth Aspect Ratio (MAR) in real time, catching prolonged eye closure and yawning.",
+        title: "Detection pipeline",
+        text: "The React client captures webcam frames, encodes them as Base64, and posts them to a Flask backend. The server decodes each frame into a NumPy array, converts it to grayscale with OpenCV, finds the face with Dlib's HOG + Linear SVM detector, predicts 68 landmarks, and computes EAR from the eye landmarks and MAR from the lip landmarks.",
       },
       {
-        title: "Hyperparameter optimization and evaluation",
-        text: "Ran a multi-dimensional Grid Search over EAR, MAR, and temporal-frame thresholds, evaluated on the UTA Real-Life Drowsiness Dataset (UTA-RLDD). The system follows a strict maximum-recall approach and reaches 83% recall on critical drowsiness states, prioritizing the elimination of dangerous false negatives.",
+        title: "Three-state decision logic",
+        text: "A hard-threshold rule tree instead of probabilities. Alert is the default state. Warning fires when EAR drops below a secondary threshold or MAR signals a yawn for N consecutive frames. Drowsy fires when EAR stays below the critical threshold for N consecutive frames, which indicates a micro-sleep. Each state triggers its own visual and audio alert.",
       },
       {
-        title: "Full-stack and edge performance",
-        text: "Reached real-time inference at 31.11 FPS on a local x86 machine. A responsive React.js frontend talks to a Flask backend through Base64-encoded frame streaming, with multi-state visual and audio alerts.",
+        title: "Grid search under a maximum-recall paradigm",
+        text: "Tuned the EAR threshold, MAR threshold, and consecutive-frame count with a two-phase grid search: a 2D pass over EAR and frames, then a 3D pass adding MAR (27 combinations). To keep runtime manageable it scored on a 15-video subset. Both passes selected an EAR of 0.23 and 9 consecutive frames.",
+      },
+      {
+        title: "Catching overfitting with a stress test",
+        text: "The 3D search picked a MAR of 0.5 on the small subset, but on the full 141-video stress test it proved too sensitive: normal speaking was read as yawning, correct 'Alert' predictions fell from 21 to 13, accuracy dropped from 46% to 40%, and macro F1 from 0.41 to 0.35. Drowsy recall stayed at 83% in both runs, so I kept MAR 0.6 as the more generalizable setting.",
+      },
+      {
+        title: "Evaluation on UTA-RLDD",
+        text: "Evaluated on 141 videos (47 per class) from the UTA Real-Life Drowsiness Dataset across Alert, Low-vigilance, and Drowsy states. The system detected 39 of 47 drowsy videos (83% recall), at the cost of 46% overall accuracy and 0.40 precision on the Drowsy class. That trade-off is deliberate for a safety-critical setting, and it also shows the limits of fixed thresholds across faces, angles, and lighting.",
+      },
+      {
+        title: "Live driver dashboard",
+        text: "The web app streams the webcam feed with the detected eye and mouth landmarks drawn on top. A status card shows the current state (for example 'Aman (Alert)') next to live EAR and MAR readouts, and one button starts or stops the camera.",
+      },
+      {
+        title: "Real-time performance and full-stack delivery",
+        text: "Reached 31.11 FPS on a local x86 machine without a GPU, about twice the 15 FPS needed for fluid real-time use. A responsive React.js frontend talks to the Flask backend through Base64-encoded frame streaming.",
       },
       {
         title: "DevOps and CI/CD pipeline",
@@ -320,16 +479,28 @@ const projects = [
       },
     ],
     highlights: [
-      { value: "83%", label: "recall on critical drowsiness states" },
-      { value: "31.11 FPS", label: "real-time inference on x86" },
+      { value: "83%", label: "recall on the critical Drowsy class (39 of 47 videos)" },
+      { value: "31.11 FPS", label: "average speed on x86 without a GPU" },
+      { value: "141", label: "videos in the stress test (47 per class)" },
+      { value: "27", label: "threshold combinations searched" },
     ],
-    tech: ["Python", "Dlib", "Flask", "React.js", "GitHub Actions", "Vercel", "Hugging Face Spaces"],
-    links: [{ label: "View on GitHub", href: "https://github.com/chicknug19/AOL-Comvis" }],
+    tech: ["Python", "Dlib", "OpenCV", "Flask", "React.js", "GitHub Actions", "Vercel", "Hugging Face Spaces"],
+    media: [
+      { file: "comvis1.jpeg", caption: "Dashboard before the camera is activated" },
+      { file: "comvis2.jpeg", caption: "Live analysis: Alert state with EAR 0.271 and MAR 0.344, landmarks drawn on the eyes and mouth" },
+    ],
+    links: [
+      { label: "Try the live app (needs a webcam)", href: "https://aol-comvis.vercel.app/", primary: true },
+      // Catatan: link Drive di bawah ini saya anggap video demo; kalau ternyata laporan, ganti labelnya.
+      { label: "Watch the demo video", href: "https://drive.google.com/file/d/1bIkkTWAsDnjedLdrEgkgcluCZhZkKkxU/view?usp=sharing" },
+      { label: "View the slides (Canva)", href: "https://canva.link/7ibkhnakmq32xy2" },
+      { label: "Read the report (PDF)", file: "laporan_comvis.pdf" },
+      { label: "View on GitHub", href: "https://github.com/chicknug19/AOL-Comvis" },
+    ],
   },
   {
     id: 6,
     group: "ai",
-    slug: "firerisk",
     title: "Forest Fire Risk Prediction Engine",
     short: "Fire Risk",
     badge: null,
@@ -338,8 +509,8 @@ const projects = [
     period: "Dec 2025",
     role: "Full-Stack AI Developer",
     company: null,
-    summary: "A real-time forest fire risk system that feeds live weather data into a Random Forest model and shows the results on an interactive satellite map.",
-    overview: "A full-stack, real-time forest fire risk prediction system that monitors vulnerable regions across Indonesia. It focuses on interactive geospatial visualization, live meteorological integration, and predictive environmental modeling.",
+    summary: "FireWatch AI: a real-time forest fire risk system that feeds live weather data and land type into a Random Forest model and shows the result on an interactive satellite map.",
+    overview: "A full-stack, real-time forest fire risk prediction system, shipped as the FireWatch AI dashboard, that monitors vulnerable regions across Indonesia. It focuses on interactive geospatial visualization, live meteorological integration, and predictive environmental modeling.",
     pointsHeading: "What I built",
     points: [
       {
@@ -355,6 +526,10 @@ const projects = [
         text: "Fetches live temperature, humidity, wind, and rainfall from the OpenWeatherMap API for specific forest coordinates and feeds them directly into the model for dynamic risk scoring.",
       },
       {
+        title: "Location scenarios and land type",
+        text: "Users pick a location or scenario, such as a protected forest in Jambi or peatland in Riau. The dashboard loads the current weather for it and sets the land type automatically from geological data (stable mineral soil or very fire-prone peatland). The verdict, for example 'AMAN: low risk', comes with its probability.",
+      },
+      {
         title: "Interactive geospatial dashboard",
         text: "A responsive interface built with React, Vite, and Tailwind CSS. React-Leaflet plots monitoring stations and extreme-weather simulation modes on an interactive satellite map.",
       },
@@ -365,14 +540,21 @@ const projects = [
     ],
     highlights: [{ value: "4", label: "live weather inputs per prediction" }],
     tech: ["Python", "Scikit-Learn", "Pandas", "NumPy", "FastAPI", "React", "Vite", "Tailwind CSS", "React-Leaflet", "OpenWeatherMap API"],
-    links: [{ label: "View on GitHub", href: "https://github.com/chicknug19/kebakaran-hutan-AI" }],
+    media: [
+      { file: "fire1.jpeg", caption: "Jambi protected-forest scenario on the satellite map: live weather, mineral soil, low risk (15.3%)" },
+      { file: "fire2.jpeg", caption: "Riau peatland scenario in a thunderstorm: peatland is flagged as very fire-prone, verdict low risk (12.7%)" },
+    ],
+    links: [
+      { label: "View the slides", href: "https://drive.google.com/file/d/1Xv-YXpoc_9yM6SGN704WnazJJwqG54gW/view?usp=sharing", primary: true },
+      { label: "Watch the demo video", href: "https://drive.google.com/file/d/1dXICGosf8tow9eoDLzXg_c_Gyt2rYaw-/view?usp=sharing" },
+      { label: "View on GitHub", href: "https://github.com/chicknug19/kebakaran-hutan-AI" },
+    ],
   },
 
   /* ---------------- Software engineering ---------------- */
   {
     id: 7,
     group: "software",
-    slug: "omnichannel",
     title: "Omnichannel Messaging & Webhook Integration Service",
     short: "Omnichannel",
     badge: null,
@@ -398,6 +580,10 @@ const projects = [
         text: "Implemented backend logic for message parsing, contact resolution, and status tracking, including read receipts and unread message counters. This lays the groundwork for real-time, two-way chat interfaces.",
       },
       {
+        title: "Test chat interface",
+        text: "A simple inbox was used to exercise the backend. It lists conversations from both platforms with [WA] and [WC] tags, opens a chat with timestamps, lets you send text and attachments, delete messages, and edit a contact's name, and shows received files as downloadable cards.",
+      },
+      {
         title: "Cloud deployment and DevOps",
         text: "Configured and deployed the services to Microsoft Azure App Services with secure endpoints and continuous integration, keeping the service highly available.",
       },
@@ -407,12 +593,15 @@ const projects = [
       { value: "Azure", label: "App Services deployment" },
     ],
     tech: ["C#", "ASP.NET Core", "Entity Framework Core", "SQL Server", "LINQ", "Azure App Services"],
+    media: [
+      { file: "wawe1.jpeg", caption: "Unified inbox with WhatsApp [WA] and WeChat [WC] conversations in one list" },
+      { file: "wawe2.jpeg", caption: "Conversation view with timestamps, delete buttons, and a downloadable file attachment" },
+    ],
     links: [{ label: "View on GitHub", href: "https://github.com/chicknug19/WeChatTest" }],
   },
   {
     id: 8,
     group: "software",
-    slug: "creepydonut",
     title: "Creepy Donut - E-Commerce with a Smart Assistant",
     short: "Creepy Donut",
     badge: null,
@@ -449,7 +638,9 @@ const projects = [
     highlights: [],
     // TODO: tambahkan bahasa/framework yang kamu pakai di frontend dan backend
     tech: ["SQL Server", "Responsive UI", "Chatbot"],
+    media: [{ file: "creepydonut1.jpeg", caption: "Landing page with the chatbot button in the corner" }],
     links: [
+      { label: "View the slides (Canva)", href: "https://www.canva.com/design/DAGoi6cdJ-4/3F4wMEwjf8IfoOwOUWs6wA/view", primary: true },
       { label: "Frontend repo", href: "https://github.com/chicknug19/CreepyDonutFE" },
       { label: "Backend repo", href: "https://github.com/chicknug19/backendCreepyDonut" },
     ],
@@ -457,38 +648,89 @@ const projects = [
   {
     id: 9,
     group: "software",
-    slug: "bookuger",
     title: "Bookuger - Library System",
     short: "Bookuger",
     badge: null,
     cover: ["#2b5f5c", "#3d5885"],
     category: "Software Engineering",
-    period: "2026",
+    period: "Feb – Jun 2026",
     role: "Full-Stack Engineer",
     company: null,
-    summary: "A web-based library book lending system with a full-stack architecture, built with UML diagrams and SRS documentation.",
-    overview: "Bookuger is an end-to-end library management system designed to streamline borrowing and returning. The project followed rigorous software engineering practices, including UML diagramming and SRS documentation.",
-    pointsHeading: "Problem and solution",
+    team: "Group 19, BINUS University",
+    contribution: "Built the ASP.NET Core REST API and SQL Server data layer (DTOs, controllers for books, users, and transactions, JWT auth, password-reset emails), integrated it with the React frontend, and set up the Azure and Vercel deployment.",
+    summary: "A web-based library lending system for BINUS with QR and barcode self-service checkout, role-based access, automated fines, and a full SRS with UML and ERD.",
+    overview: "Bookuger is an online-to-offline library circulation system for BINUS University, built as a software engineering project that followed the Waterfall model from a 98-page Software Requirements Specification through implementation and deployment. Students browse the catalog and get a digital member ID. Library admins scan the member's QR code and the book's barcode at the desk to check books out and in. The goal: shorter queues, less manual data entry for librarians, and an accurate log of inventory and loans.",
+    pointsHeading: "Problem, solution, and what I built",
     points: [
       {
         title: "The problem",
-        text: "Managing physical book inventories and tracking borrower deadlines by hand leads to data loss and inefficiency.",
+        text: "Managing physical book inventories and tracking borrower deadlines by hand leads to queues, data loss, and inefficiency for both students and librarians.",
       },
       {
-        title: "The solution",
-        text: "A responsive React frontend coupled with a secure ASP.NET Core API backend, using SQL Server for reliable relational data storage and transaction management.",
+        title: "Barcode-assisted circulation",
+        text: "The admin scans the member's QR code (or types the Member ID as a fallback), and the system checks eligibility for blacklists and unpaid fines. After the book's barcode is scanned it stamps the borrow date, calculates the due date, and reduces available stock. Returns follow the same scan flow.",
+      },
+      {
+        title: "Secure authentication and roles",
+        text: "Role-based access for members and admins with JWT, which replaced the earlier session approach. There is no self-registration: member login is validated against the student NIM. Forgot-password and reset flows send emails through Gmail SMTP with time-limited reset tokens. The SRS sets JWT lifetime at 1 day, or 7 days with 'Remember me'.",
+      },
+      {
+        title: "Data integrity and concurrency",
+        text: "Book and transaction controllers were reworked so database changes are ACID. The SRS also specifies pessimistic row locking during checkout, so two people cannot borrow the last copy at the same moment.",
+      },
+      {
+        title: "Automated fines and blacklist",
+        text: "Late fees are calculated automatically from the due date at Rp 2,000 per day and shown to both admin and student. Admins can toggle a member's blacklist status, which blocks future borrowing.",
+      },
+      {
+        title: "Catalog management and discovery",
+        text: "Admins get full CRUD on the catalog with validation (unique ISBN, no negative stock) and a confirmation modal before deletion. Students get real-time search, category filtering, and pagination. Book images are stored in the database.",
+      },
+      {
+        title: "Cloud deployment and security",
+        text: "React frontend on Vercel, ASP.NET Core API on Azure App Service, and Azure SQL accessed only through Entity Framework Core, so queries are parameterized. CORS accepts only the frontend domain, secrets live in environment variables, and a GitHub Actions workflow builds and publishes the backend to Azure.",
+      },
+      {
+        title: "Engineering process",
+        text: "Documented in an SRS with use case, activity, sequence, and class diagrams plus an ERD. Development used role-based Git branches with pull-request reviews across frontend and backend. A risk analysis covers scanner failure (manual ID fallback), SSO downtime, race conditions, QR screenshot sharing, and misplaced books.",
       },
     ],
-    highlights: [],
-    tech: ["React.js", "ASP.NET Core", "SQL Server"],
-    // Isi link repo Bookuger di sini, contoh:
-    // { label: "View on GitHub", href: "https://github.com/chicknug19/..." }
-    links: [],
+    highlights: [
+      { value: "98 pages", label: "SRS with UML diagrams and an ERD" },
+      { value: "2 roles", label: "member and admin, secured with JWT" },
+      { value: "Rp 2,000", label: "late fee per day, calculated automatically" },
+      { value: "5", label: "risks analysed with mitigation plans" },
+    ],
+    tech: ["React.js", "ASP.NET Core", "C#", "Entity Framework Core", "SQL Server", "JWT", "Azure App Service", "Vercel", "GitHub Actions"],
+    media: [
+      { file: "se_uhomepage.jpeg", caption: "Member home page" },
+      { file: "se_uhomepage1.jpeg", caption: "Member home page, second view" },
+      { file: "se_explorepage.jpeg", caption: "Explore page" },
+      { file: "se_searchpage.jpeg", caption: "Search page" },
+      { file: "se_bookpage.jpeg", caption: "Book page" },
+      { file: "se_login.jpeg", caption: "Login page" },
+      { file: "se_ahomepage.jpeg", caption: "Admin home page" },
+      { file: "se_memberpage.jpeg", caption: "Member page" },
+      { file: "se_borrowbook.jpeg", caption: "Borrow book flow" },
+      { file: "se_returnbook.jpeg", caption: "Return book flow" },
+      { file: "se_inventorypage.jpeg", caption: "Inventory page" },
+    ],
+    links: [
+      { label: "Watch the demo video", href: "https://drive.google.com/file/d/1c0OLaxqyWhti_1Obtf1t1KaAAWna_hvf/view?usp=sharing", primary: true },
+      { label: "Read the SRS (Google Docs)", href: "https://docs.google.com/document/d/1Nh95T285dmyuxs9D7atajg8gC4WXlZRG9qlUDuJIe4E/edit?usp=sharing" },
+      { label: "UML diagrams (Google Docs)", href: "https://docs.google.com/document/d/1CA-N-X9Kq5Inup6SW6VWD7EgPP4dFqL4W6PlSXFB4iQ/edit?usp=sharing" },
+      { label: "PKM-KC document (Google Docs)", href: "https://docs.google.com/document/d/1_cf_9uGqMd-wOg3RnSa5iam9iYLX34urFplSut2t03A/edit?tab=t.0" },
+      // PENTING: ini link "edit" Canva. Ganti dengan link "view" dari Canva (Share > Public view link)
+      // supaya pengunjung tidak bisa mengubah desainmu.
+      { label: "View the slides (Canva)", href: "https://www.canva.com/design/DAHLbyGgHlA/ebdRKJWSf3puPk_PMvwLgA/edit" },
+      // Repo ini saya asumsikan milik Bookuger (tugas Software Engineering); hapus baris ini kalau salah.
+      { label: "View on GitHub", href: "https://github.com/chicknug19/AOL-SE-cuy" },
+    ],
   },
 ];
 
 /* ------------------------------------------------------------------ */
-/*  STYLE — background berganti warna + font                           */
+/*  STYLE — background berganti warna + font + animasi                 */
 /*  Ubah warna background di baris `.bg-shift` (5 warna, lalu kembali) */
 /* ------------------------------------------------------------------ */
 
@@ -496,7 +738,7 @@ const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:wght@400;500;600&display=swap');
 
 html { scroll-behavior: smooth; }
-body { margin: 0; background: #1c2547; }
+body { margin: 0; background: #0f1630; }
 ::selection { background: rgba(255,255,255,.35); color: #fff; }
 
 .f-display { font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; }
@@ -504,7 +746,7 @@ body { margin: 0; background: #1c2547; }
 
 /* Background yang perlahan berganti warna (versi paling gelap) */
 .bg-shift {
-  background: linear-gradient(120deg, #123640, #1c2547, #33285a, #47294f, #1a3357, #123640);
+  background: linear-gradient(120deg, #0a1f27, #101730, #1c1636, #2a1a31, #0e1e38, #0a1f27);
   background-size: 300% 300%;
   animation: bgshift 32s ease-in-out infinite;
 }
@@ -521,12 +763,18 @@ body { margin: 0; background: #1c2547; }
   height: 42vmax;
   border-radius: 9999px;
   filter: blur(90px);
-  opacity: .14;
+  opacity: .1;
   animation: drift 44s ease-in-out infinite alternate;
 }
 @keyframes drift {
   from { transform: translate3d(0, 0, 0) scale(1); }
   to   { transform: translate3d(10vw, 8vh, 0) scale(1.15); }
+}
+.parallax-layer {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, calc(var(--sy, 0) * -0.05px), 0);
+  will-change: transform;
 }
 
 /* Animasi masuk hero (sekali saat halaman dibuka) */
@@ -539,6 +787,93 @@ body { margin: 0; background: #1c2547; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Nama di hero muncul huruf demi huruf, lalu tiap huruf bisa "melompat" saat di-hover */
+.letter {
+  display: inline-block;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1);
+  animation: letter-in .9s cubic-bezier(.2,.7,.2,1) backwards;
+}
+.letter:hover { transform: translateY(-.08em) rotate(-2deg); }
+@keyframes letter-in {
+  from { opacity: 0; transform: translateY(.7em) rotate(6deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Teks yang diketik + kursor berkedip */
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 4px;
+  background: currentColor;
+  vertical-align: -0.12em;
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Foto profil: bentuk blob yang pelan-pelan berubah + melayang */
+.blob { animation: morph 14s ease-in-out infinite; border-radius: 58% 42% 47% 53% / 52% 44% 56% 48%; }
+.blob-rev { animation-direction: reverse; }
+@keyframes morph {
+  0%, 100% { border-radius: 58% 42% 47% 53% / 52% 44% 56% 48%; }
+  33%      { border-radius: 46% 54% 55% 45% / 58% 42% 58% 42%; }
+  66%      { border-radius: 52% 48% 40% 60% / 44% 56% 44% 56%; }
+}
+.float { animation: float 8s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-12px); } }
+
+/* Muncul saat di-scroll (dipakai komponen <Reveal />) */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1);
+}
+.reveal.reveal-in { opacity: 1; transform: none; }
+
+/* Transisi saat pindah ke halaman detail */
+.page-in { animation: page-in .6s cubic-bezier(.2,.7,.2,1) both; }
+.fade-in { animation: fade-in .5s ease both; }
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Kartu proyek: sedikit miring mengikuti kursor */
+.tilt {
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform .18s ease-out, background-color .3s, border-color .3s;
+  will-change: transform;
+}
+
+/* Tombol putih dengan kilatan saat di-hover */
+.btn-shine { position: relative; overflow: hidden; }
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(11,16,36,.14) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform .8s;
+}
+.btn-shine:hover::after { transform: translateX(120%); }
+
+/* Pita teknologi yang bergeser terus; berhenti saat di-hover */
+.marquee-track { display: flex; width: max-content; animation: marquee 48s linear infinite; }
+.marquee-rev { animation-direction: reverse; animation-duration: 56s; }
+.marquee-wrap:hover .marquee-track { animation-play-state: paused; }
+.marquee-item {
+  margin-right: .75rem;
+  padding: .5rem 1rem;
+  border-radius: 9999px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18);
+  font-size: .9rem;
+  white-space: nowrap;
+  color: rgba(255,255,255,.9);
+}
+@keyframes marquee { to { transform: translateX(-50%); } }
+
 a:focus-visible, button:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
@@ -546,9 +881,175 @@ a:focus-visible, button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .bg-shift, .orb, .rise { animation: none !important; }
+  .bg-shift, .orb, .rise, .letter, .caret, .blob, .float, .page-in, .fade-in, .marquee-track {
+    animation: none !important;
+  }
+  .parallax-layer { transform: none !important; }
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .tilt { transform: none !important; }
+  .marquee-wrap { overflow-x: auto !important; }
 }
 `;
+
+/* ------------------------------------------------------------------ */
+/*  Hooks & komponen animasi                                           */
+/* ------------------------------------------------------------------ */
+
+// true setelah elemen masuk layar (sekali saja)
+function useInView(options = {}) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(REDUCED);
+  useEffect(() => {
+    if (REDUCED) return undefined;
+    const el = ref.current;
+    if (!el) return undefined;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -6% 0px', ...options }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return [ref, inView];
+}
+
+// Membungkus konten agar muncul halus saat di-scroll. `delay` (ms) untuk efek berurutan.
+function Reveal({ children, delay = 0, className = '' }) {
+  const [ref, inView] = useInView();
+  return (
+    <div
+      ref={ref}
+      className={`reveal ${inView ? 'reveal-in' : ''} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Angka yang menghitung naik dari 0. Awalan/akhiran ("Rp ", "M", "%", " FPS") dipertahankan.
+function CountUp({ value }) {
+  const [ref, inView] = useInView({ threshold: 0.4 });
+  const str = String(value);
+  const m = str.match(/\d[\d,]*\.?\d*/);
+
+  const numStr = m ? m[0] : '';
+  const prefix = m ? str.slice(0, m.index) : '';
+  const suffix = m ? str.slice(m.index + numStr.length) : '';
+  const target = m ? parseFloat(numStr.replace(/,/g, '')) : 0;
+  const decimals = (numStr.split('.')[1] || '').length;
+  const hasComma = numStr.includes(',');
+
+  const build = (v) => {
+    const body = hasComma
+      ? v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+      : v.toFixed(decimals);
+    return `${prefix}${body}${suffix}`;
+  };
+
+  const [display, setDisplay] = useState(() => (m && !REDUCED ? build(0) : str));
+
+  useEffect(() => {
+    if (!m || REDUCED || !inView) return undefined;
+    let raf = 0;
+    let t0;
+    const step = (t) => {
+      if (t0 === undefined) t0 = t;
+      const p = Math.min((t - t0) / 1400, 1);
+      setDisplay(build(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView]);
+
+  return (
+    <span ref={ref} className="tabular-nums" aria-label={str}>
+      {display}
+    </span>
+  );
+}
+
+// Mengetik dan menghapus kalimat secara bergantian
+function useTypewriter(phrases) {
+  const [text, setText] = useState(REDUCED ? phrases[0] : '');
+  useEffect(() => {
+    if (REDUCED) return undefined;
+    let i = 0;
+    let j = 0;
+    let deleting = false;
+    let timer;
+    const tick = () => {
+      const word = phrases[i];
+      if (!deleting) {
+        j += 1;
+        setText(word.slice(0, j));
+        if (j === word.length) {
+          deleting = true;
+          timer = setTimeout(tick, 1600);
+          return;
+        }
+        timer = setTimeout(tick, 60);
+      } else {
+        j -= 1;
+        setText(word.slice(0, j));
+        if (j === 0) {
+          deleting = false;
+          i = (i + 1) % phrases.length;
+          timer = setTimeout(tick, 350);
+          return;
+        }
+        timer = setTimeout(tick, 28);
+      }
+    };
+    timer = setTimeout(tick, 1100);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return text;
+}
+
+// Memecah teks jadi huruf-huruf yang muncul berurutan
+function SplitText({ text, start = 0 }) {
+  return (
+    <span aria-hidden="true">
+      {[...text].map((c, i) => (
+        <span key={i} className="letter" style={{ animationDelay: `${start + i * 55}ms` }}>
+          {c}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// Pita teknologi yang bergeser terus
+function Marquee({ items, reverse = false }) {
+  const row = [...items, ...items];
+  return (
+    <div
+      className="marquee-wrap overflow-hidden"
+      style={{
+        WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
+        maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
+      }}
+    >
+      <div className={`marquee-track ${reverse ? 'marquee-rev' : ''}`}>
+        {row.map((t, i) => (
+          <span key={`${t}-${i}`} className="marquee-item" aria-hidden={i >= items.length ? 'true' : undefined}>
+            {t}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Komponen kecil                                                     */
@@ -572,7 +1073,7 @@ function Cover({ project, className = "" }) {
           backgroundSize: "18px 18px",
         }}
       />
-      <span className="absolute left-6 bottom-5 f-display text-3xl sm:text-4xl font-bold text-white leading-none">
+      <span className="absolute left-6 bottom-5 f-display text-3xl font-bold text-white leading-none">
         {project.short}
       </span>
     </div>
@@ -599,15 +1100,16 @@ function VideoPreview({ src, className }) {
 
 function CardMedia({ project, media }) {
   const first = media[0];
+  const zoom = 'transition-transform duration-700 ease-out group-hover:scale-105';
   return (
-    <div className="relative h-52 w-full overflow-hidden">
-      {!first && <Cover project={project} className="h-full w-full" />}
+    <div className="relative h-48 w-full overflow-hidden bg-black/20">
+      {!first && <Cover project={project} className={`h-full w-full ${zoom}`} />}
       {first && first.type === 'image' && (
-        <img src={first.src} alt={project.title} className="h-full w-full object-cover" />
+        <img src={first.src} alt={project.title} className={`h-full w-full object-cover object-top ${zoom}`} />
       )}
-      {first && first.type === 'video' && <VideoPreview src={first.src} className="h-full w-full object-cover" />}
+      {first && first.type === 'video' && <VideoPreview src={first.src} className={`h-full w-full object-cover ${zoom}`} />}
       {project.badge && (
-        <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-black/45 backdrop-blur-sm border border-white/25 px-3 py-1 text-xs font-medium">
+        <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-black/55 backdrop-blur-sm border border-white/25 px-3 py-1 text-xs font-medium">
           <svg className="w-3.5 h-3.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
           </svg>
@@ -618,25 +1120,32 @@ function CardMedia({ project, media }) {
   );
 }
 
-// Galeri di halaman detail: gambar / video utama + thumbnail
+// Galeri di halaman detail: gambar / video utama + keterangan + thumbnail
 function MediaViewer({ project, media }) {
   const [active, setActive] = useState(0);
   const current = media[active];
 
   if (media.length === 0) {
+    const expected = (project.media || []).map((m) => (typeof m === 'string' ? m : m.file)).filter(Boolean);
     return (
       <div className="aspect-video w-full rounded-3xl border-2 border-dashed border-white/25 bg-white/[0.04] flex flex-col items-center justify-center gap-4 text-center p-8">
         <svg className="w-12 h-12 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1zm0 11l4.5-4.5a1 1 0 011.4 0L14 15.5l2-2a1 1 0 011.4 0L21 17M9 9.5h.01" />
         </svg>
-        <p className="f-display text-xl sm:text-2xl font-semibold">Preview coming soon</p>
+        <p className="f-display text-xl font-semibold">Preview coming soon</p>
         {IS_DEV && (
           <p className="text-sm text-white/70 max-w-xl leading-relaxed">
-            Add <code className="px-1.5 py-0.5 rounded bg-white/10">{project.slug}.png</code> or{' '}
-            <code className="px-1.5 py-0.5 rounded bg-white/10">{project.slug}.mp4</code> to{' '}
-            <code className="px-1.5 py-0.5 rounded bg-white/10">src/assets/projects/</code>. For a gallery, add{' '}
-            <code className="px-1.5 py-0.5 rounded bg-white/10">{project.slug}-2.png</code>,{' '}
-            <code className="px-1.5 py-0.5 rounded bg-white/10">{project.slug}-3.mp4</code>, and so on.
+            {expected.length > 0 ? (
+              <>
+                Put <code className="px-1.5 py-0.5 rounded bg-white/10">{expected.join(', ')}</code> in{' '}
+                <code className="px-1.5 py-0.5 rounded bg-white/10">src/assets/</code>.
+              </>
+            ) : (
+              <>
+                Add file names to this project&apos;s <code className="px-1.5 py-0.5 rounded bg-white/10">media</code> array and
+                put the files in <code className="px-1.5 py-0.5 rounded bg-white/10">src/assets/</code>.
+              </>
+            )}{' '}
             This hint only shows while developing.
           </p>
         )}
@@ -648,11 +1157,13 @@ function MediaViewer({ project, media }) {
     <div>
       <div className="aspect-video w-full rounded-3xl overflow-hidden bg-black/30 border border-white/15">
         {current.type === 'video' ? (
-          <video key={current.src} src={current.src} controls playsInline preload="metadata" className="w-full h-full object-contain" />
+          <video key={current.src} src={current.src} controls playsInline preload="metadata" className="fade-in w-full h-full object-contain" />
         ) : (
-          <img src={current.src} alt={`${project.title}, image ${active + 1}`} className="w-full h-full object-contain" />
+          <img key={current.src} src={current.src} alt={current.caption || `${project.title}, image ${active + 1}`} className="fade-in w-full h-full object-contain" />
         )}
       </div>
+
+      {current.caption && <p className="mt-3 text-sm text-white/70 leading-relaxed">{current.caption}</p>}
 
       {media.length > 1 && (
         <div className="flex gap-3 mt-4 overflow-x-auto pb-1">
@@ -661,10 +1172,10 @@ function MediaViewer({ project, media }) {
               key={m.src}
               type="button"
               onClick={() => setActive(i)}
-              aria-label={`Show ${m.type} ${i + 1}`}
+              aria-label={m.caption || `Show ${m.type} ${i + 1}`}
               aria-pressed={i === active}
-              className={`relative shrink-0 w-28 h-20 rounded-xl overflow-hidden border transition-opacity ${
-                i === active ? 'border-white' : 'border-white/20 opacity-70 hover:opacity-100'
+              className={`relative shrink-0 w-28 h-20 rounded-xl overflow-hidden border transition-all duration-300 ${
+                i === active ? 'border-white scale-105' : 'border-white/20 opacity-70 hover:opacity-100'
               }`}
             >
               {m.type === 'video' ? (
@@ -677,7 +1188,7 @@ function MediaViewer({ project, media }) {
                   </span>
                 </>
               ) : (
-                <img src={m.src} alt="" className="w-full h-full object-cover" />
+                <img src={m.src} alt="" className="w-full h-full object-cover object-top" />
               )}
             </button>
           ))}
@@ -703,37 +1214,70 @@ function ArrowRight() {
   );
 }
 
+function ExternalIcon() {
+  return (
+    <svg className="w-4 h-4 shrink-0 opacity-80 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 17L17 7M9 7h8v8" />
+    </svg>
+  );
+}
+
 function ProjectCard({ project, onOpen }) {
+  const ref = useRef(null);
   const media = getProjectMedia(project);
   const shownTech = project.tech.slice(0, 4);
   const extra = project.tech.length - shownTech.length;
+
+  // Efek miring 3D halus mengikuti kursor (dinonaktifkan di layar sentuh)
+  const onMove = (e) => {
+    if (REDUCED || e.pointerType === 'touch') return;
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    el.style.setProperty('--rx', `${(0.5 - py) * 6}deg`);
+    el.style.setProperty('--ry', `${(px - 0.5) * 8}deg`);
+  };
+  const onLeave = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.setProperty('--rx', '0deg');
+    el.style.setProperty('--ry', '0deg');
+  };
+
   return (
     <button
+      ref={ref}
       type="button"
       onClick={() => onOpen(project)}
-      className="group flex flex-col text-left rounded-3xl overflow-hidden bg-white/[0.08] backdrop-blur-md border border-white/15 hover:bg-white/[0.13] hover:border-white/35 transition-colors duration-300"
+      onPointerMove={onMove}
+      onPointerLeave={onLeave}
+      className="tilt group flex flex-col h-full w-full text-left rounded-3xl overflow-hidden bg-white/[0.07] backdrop-blur-md border border-white/15 hover:bg-white/[0.12] hover:border-white/35"
     >
       <CardMedia project={project} media={media} />
-      <span className="flex flex-col flex-1 p-6">
+      <span className="flex flex-col flex-1 p-5">
         <span className="text-sm text-white/70 mb-1">
           {project.category}
           {project.company ? ` at ${project.company}` : ''}
         </span>
-        <span className="f-display text-xl font-bold mb-2">{project.title}</span>
-        <span className="text-sm text-white/80 leading-relaxed mb-5">{project.summary}</span>
+        <span className="f-display text-lg font-bold mb-2">{project.title}</span>
+        <span className="text-sm text-white/80 leading-relaxed mb-4">{project.summary}</span>
 
         {project.highlights.length > 0 && (
-          <span className="flex flex-wrap gap-x-8 gap-y-3 mb-5">
+          <span className="flex flex-wrap gap-x-7 gap-y-3 mb-4">
             {project.highlights.slice(0, 2).map((h) => (
-              <span key={h.label} className="max-w-[10rem]">
-                <span className="block f-display text-2xl font-bold leading-none mb-1">{h.value}</span>
+              <span key={h.label} className="max-w-[9.5rem]">
+                <span className="block f-display text-xl font-bold leading-none mb-1">
+                  <CountUp value={h.value} />
+                </span>
                 <span className="block text-xs text-white/65">{h.label}</span>
               </span>
             ))}
           </span>
         )}
 
-        <span className="flex flex-wrap gap-2 mb-5">
+        <span className="flex flex-wrap gap-2 mb-4">
           {shownTech.map((t) => (
             <Chip key={t}>{t}</Chip>
           ))}
@@ -755,12 +1299,62 @@ function ProjectCard({ project, onOpen }) {
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
   const [selectedProject, setSelectedProject] = useState(null);
+  const [activeSection, setActiveSection] = useState('home');
+  const [scrolled, setScrolled] = useState(false);
+  const typed = useTypewriter(TYPED_PHRASES);
 
   useEffect(() => {
     document.title = selectedProject
       ? `${selectedProject.title} | Radianda Setiawan`
       : 'Radianda Setiawan | AI Developer & Software Engineer';
   }, [selectedProject]);
+
+  // Progres scroll + parallax background (lewat CSS variable, tanpa re-render React)
+  useEffect(() => {
+    const root = document.documentElement;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const max = root.scrollHeight - window.innerHeight;
+      root.style.setProperty('--progress', String(max > 0 ? Math.min(window.scrollY / max, 1) : 0));
+      root.style.setProperty('--sy', String(window.scrollY));
+      setScrolled((prev) => {
+        const next = window.scrollY > 24;
+        return prev === next ? prev : next;
+      });
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    update();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Menandai menu navbar sesuai section yang sedang terlihat
+  useEffect(() => {
+    if (currentView !== 'home') {
+      setActiveSection('');
+      return undefined;
+    }
+    const ids = ['home', 'about', 'ai-projects', 'software-projects', 'contact'];
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) setActiveSection(e.target.id);
+        });
+      },
+      { rootMargin: '-45% 0px -50% 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [currentView]);
 
   const openProject = (project) => {
     setSelectedProject(project);
@@ -794,42 +1388,70 @@ export default function App() {
   const backLabel = selectedProject && selectedProject.group === 'ai' ? 'Back to AI projects' : 'Back to software projects';
 
   const visibleSocials = SOCIALS.filter((s) => s.href && s.href !== '#');
+  const missingSocials = [
+    !WHATSAPP && 'WHATSAPP',
+    !LINE_ID && 'LINE_ID',
+    !INSTAGRAM && 'INSTAGRAM',
+  ].filter(Boolean);
   const detailMedia = selectedProject ? getProjectMedia(selectedProject) : [];
+  const detailLinks = selectedProject ? getProjectLinks(selectedProject) : [];
 
   const navLinks = [
-    { label: 'Home', id: 'home', hideOnMobile: true },
-    { label: 'About', id: 'about' },
-    { label: 'Projects', id: 'ai-projects' },
-    { label: 'Contact', id: 'contact' },
+    { label: 'Home', id: 'home', match: ['home'], hideOnMobile: true },
+    { label: 'About', id: 'about', match: ['about'] },
+    { label: 'Projects', id: 'ai-projects', match: ['ai-projects', 'software-projects'] },
+    { label: 'Contact', id: 'contact', match: ['contact'] },
   ];
+
+  const marqueeTop = [...skillGroups[0].items, ...skillGroups[1].items];
+  const marqueeBottom = [...skillGroups[2].items, ...skillGroups[3].items];
 
   return (
     <div className="relative min-h-screen text-white f-body overflow-x-hidden">
       <style>{styles}</style>
 
-      {/* Background bergerak */}
+      {/* Garis progres scroll */}
+      <div
+        aria-hidden="true"
+        className="fixed top-0 left-0 z-[60] h-[3px] w-full origin-left bg-gradient-to-r from-cyan-300 via-violet-300 to-pink-300"
+        style={{ transform: 'scaleX(var(--progress, 0))' }}
+      />
+
+      {/* Background bergerak (dengan parallax halus saat scroll) */}
       <div className="fixed inset-0 z-0 pointer-events-none bg-shift" aria-hidden="true">
-        <div className="orb" style={{ top: '-12%', left: '-10%', background: '#2f7280' }} />
-        <div className="orb" style={{ bottom: '-15%', right: '-10%', background: '#6a5599', animationDelay: '-18s' }} />
+        <div className="parallax-layer">
+          <div className="orb" style={{ top: '-12%', left: '-10%', background: '#2f7280' }} />
+          <div className="orb" style={{ bottom: '-15%', right: '-10%', background: '#6a5599', animationDelay: '-18s' }} />
+        </div>
       </div>
 
       <div className="relative z-10">
         {/* Navbar */}
         <header className="fixed top-4 inset-x-0 z-50 px-4">
-          <nav className="mx-auto max-w-3xl flex items-center justify-between rounded-full bg-white/10 backdrop-blur-xl border border-white/20 pl-5 pr-2 py-2">
+          <nav
+            className={`mx-auto max-w-3xl flex items-center justify-between rounded-full backdrop-blur-xl border pl-5 pr-2 py-2 transition-all duration-500 ${
+              scrolled ? 'bg-white/[0.14] border-white/30 shadow-lg shadow-black/30' : 'bg-white/[0.08] border-white/20'
+            }`}
+          >
             <button onClick={() => goTo('home')} className="f-display font-bold text-lg tracking-tight">
               Radianda
             </button>
             <div className="flex items-center gap-1 text-sm font-medium">
-              {navLinks.map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => goTo(l.id)}
-                  className={`${l.hideOnMobile ? 'hidden sm:inline-flex' : 'inline-flex'} px-3 sm:px-4 py-2 rounded-full text-white/80 hover:text-white hover:bg-white/15 transition-colors`}
-                >
-                  {l.label}
-                </button>
-              ))}
+              {navLinks.map((l) => {
+                const isActive = l.match.includes(activeSection);
+                return (
+                  <button
+                    key={l.id}
+                    onClick={() => goTo(l.id)}
+                    aria-current={isActive ? 'true' : undefined}
+                    className={`${l.hideOnMobile ? 'hidden sm:inline-flex' : 'inline-flex'} px-3 sm:px-4 py-2 rounded-full transition-colors duration-300 ${
+                      isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:text-white hover:bg-white/15'
+                    }`}
+                  >
+                    {l.label}
+                  </button>
+                );
+              })}
             </div>
           </nav>
         </header>
@@ -838,31 +1460,46 @@ export default function App() {
         {currentView === 'home' && (
           <main>
             {/* Hero */}
-            <section id="home" className={`${PAD} pt-36 pb-24 min-h-screen flex items-center`}>
-              <div className={`${WRAP} grid lg:grid-cols-[1.15fr_1fr] gap-14 items-center`}>
+            <section id="home" className={`${PAD} pt-32 pb-20 min-h-screen flex items-center`}>
+              <div className={`${WRAP} grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center`}>
                 <div className="text-center lg:text-left">
-                  <div className="rise inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm text-white/90 mb-8">
-                    <span className="w-2 h-2 rounded-full bg-emerald-300" />
+                  <div className="rise inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm text-white/90 mb-7">
+                    <span className="relative flex w-2 h-2">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-70 animate-ping" />
+                      <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-300" />
+                    </span>
                     Open to internships and collaborations
                   </div>
 
-                  <h1 className="rise rise-2 f-display text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold leading-[1.02] tracking-tight mb-5">
-                    <span className="block">Radianda</span>
-                    <span className="block">Setiawan</span>
+                  <h1
+                    aria-label="Radianda Setiawan"
+                    className="f-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.02] tracking-tight mb-5"
+                  >
+                    <span className="block">
+                      <SplitText text="Radianda" start={150} />
+                    </span>
+                    <span className="block">
+                      <SplitText text="Setiawan" start={650} />
+                    </span>
                   </h1>
 
-                  <h2 className="rise rise-3 f-display text-xl sm:text-2xl lg:text-3xl font-medium text-white/85 mb-6">
+                  <h2 className="rise rise-3 f-display text-xl sm:text-2xl font-medium text-white/85 mb-3">
                     AI Developer &amp; Software Engineer
                   </h2>
 
-                  <p className="rise rise-3 text-white/80 text-lg leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0">
+                  <p className="rise rise-3 text-base sm:text-lg text-white/70 mb-5 min-h-[3rem] sm:min-h-[1.75rem]">
+                    I build <span className="text-white font-medium">{typed}</span>
+                    <span className="caret" aria-hidden="true" />
+                  </p>
+
+                  <p className="rise rise-3 text-white/80 text-base sm:text-lg leading-relaxed mb-9 max-w-xl mx-auto lg:mx-0">
                     A Computer Science student focusing on full-stack web architecture and Artificial Intelligence. I specialize in turning complex algorithms into clean, efficient, and interactive software solutions.
                   </p>
 
                   <div className="rise rise-4 flex flex-wrap gap-3 justify-center lg:justify-start">
                     <button
                       onClick={() => goTo('ai-projects')}
-                      className="px-7 py-3 bg-white text-[#141b38] font-semibold rounded-full hover:bg-white/90 transition-colors"
+                      className="btn-shine px-7 py-3 bg-white text-[#0b1024] font-semibold rounded-full hover:bg-white/90 transition-colors"
                     >
                       View my work
                     </button>
@@ -877,13 +1514,13 @@ export default function App() {
 
                 {/* Foto profil: taruh di src/assets/profile.jpg */}
                 <div className="rise rise-2 order-first lg:order-none flex justify-center">
-                  <div className="relative w-60 h-60 sm:w-72 sm:h-72 lg:w-96 lg:h-96 xl:w-[28rem] xl:h-[28rem] shrink-0">
-                    <div className="absolute inset-0 translate-x-4 translate-y-4 border-2 border-white/30 rounded-[58%_42%_47%_53%/52%_44%_56%_48%]" />
-                    <div className="relative w-full h-full overflow-hidden rounded-[58%_42%_47%_53%/52%_44%_56%_48%] bg-white/10 border border-white/30">
+                  <div className="float relative w-56 h-56 sm:w-64 sm:h-64 lg:w-80 lg:h-80 shrink-0">
+                    <div className="blob blob-rev absolute inset-0 translate-x-4 translate-y-4 border-2 border-white/30" />
+                    <div className="blob relative w-full h-full overflow-hidden bg-white/10 border border-white/30">
                       {PROFILE_PHOTO ? (
                         <img src={PROFILE_PHOTO} alt="Radianda Setiawan" className="w-full h-full object-cover object-center" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center f-display text-7xl lg:text-8xl font-bold text-white/85">
+                        <div className="w-full h-full flex items-center justify-center f-display text-7xl font-bold text-white/85">
                           RS
                         </div>
                       )}
@@ -893,52 +1530,61 @@ export default function App() {
               </div>
             </section>
 
+            {/* Pita teknologi */}
+            <section aria-label="Tools and technologies" className="py-6 space-y-3">
+              <Marquee items={marqueeTop} />
+              <Marquee items={marqueeBottom} reverse />
+            </section>
+
             {/* About / skills */}
-            <section id="about" className={`${PAD} py-24 scroll-mt-20`}>
-              <div className={`${WRAP} grid lg:grid-cols-[1fr_1.6fr] gap-12 items-start`}>
-                <div>
-                  <h2 className="f-display text-3xl sm:text-4xl font-bold tracking-tight mb-5">
+            <section id="about" className={`${PAD} py-20 scroll-mt-20`}>
+              <div className={`${WRAP} grid lg:grid-cols-[1fr_1.6fr] gap-10 items-start`}>
+                <Reveal>
+                  <h2 className="f-display text-2xl sm:text-3xl font-bold tracking-tight mb-4">
                     Models, and the software around them
                   </h2>
-                  <p className="text-white/80 text-lg leading-relaxed max-w-md">
+                  <p className="text-white/80 text-base sm:text-lg leading-relaxed max-w-md">
                     I work on both sides of an AI product: training and evaluating the models, and building the web and backend services that put them in front of people.
                   </p>
-                </div>
+                </Reveal>
 
-                <div className="grid sm:grid-cols-2 gap-5">
+                <div className="grid sm:grid-cols-2 gap-4">
                   {skillGroups.map((g, i) => (
-                    <div
+                    <Reveal
                       key={g.title}
-                      className={`rounded-3xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-6 ${
-                        i === skillGroups.length - 1 && skillGroups.length % 2 === 1 ? 'sm:col-span-2' : ''
-                      }`}
+                      delay={i * 90}
+                      className={i === skillGroups.length - 1 && skillGroups.length % 2 === 1 ? 'sm:col-span-2' : ''}
                     >
-                      <h3 className="f-display text-lg font-bold mb-4">{g.title}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {g.items.map((item) => (
-                          <Chip key={item}>{item}</Chip>
-                        ))}
+                      <div className="h-full rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/15 p-5 transition-colors duration-300 hover:bg-white/[0.11]">
+                        <h3 className="f-display text-base font-bold mb-3">{g.title}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {g.items.map((item) => (
+                            <Chip key={item}>{item}</Chip>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </Reveal>
                   ))}
                 </div>
               </div>
             </section>
 
             {/* Projects: dipisah AI dan Software */}
-            <section id="projects" className={`${PAD} py-24`}>
-              <div className={`${WRAP} space-y-28`}>
+            <section id="projects" className={`${PAD} py-20`}>
+              <div className={`${WRAP} space-y-24`}>
                 {sections.map((s) => (
                   <div key={s.id} id={s.id} className="scroll-mt-24">
-                    <div className="mb-10 max-w-2xl">
-                      <h2 className="f-display text-3xl sm:text-4xl font-bold tracking-tight mb-3">{s.title}</h2>
-                      <p className="text-white/75 text-lg">{s.text}</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <Reveal className="mb-8 max-w-2xl">
+                      <h2 className="f-display text-2xl sm:text-3xl font-bold tracking-tight mb-2">{s.title}</h2>
+                      <p className="text-white/75 text-base sm:text-lg">{s.text}</p>
+                    </Reveal>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                       {projects
                         .filter((p) => p.group === s.group)
-                        .map((p) => (
-                          <ProjectCard key={p.id} project={p} onOpen={openProject} />
+                        .map((p, i) => (
+                          <Reveal key={p.id} delay={(i % 3) * 100} className="h-full">
+                            <ProjectCard project={p} onOpen={openProject} />
+                          </Reveal>
                         ))}
                     </div>
                   </div>
@@ -950,56 +1596,62 @@ export default function App() {
 
         {/* ============ HALAMAN DETAIL PROYEK ============ */}
         {currentView === 'project' && selectedProject && (
-          <main className={`${PAD} pt-32 pb-24 min-h-screen`}>
+          <main key={selectedProject.id} className={`page-in ${PAD} pt-28 pb-20 min-h-screen`}>
             <div className={WRAP}>
               <button
                 onClick={() => goTo(backTarget)}
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 px-4 py-2 mb-10 text-sm font-medium transition-colors"
+                className="group inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 px-4 py-2 mb-8 text-sm font-medium transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <svg className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 {backLabel}
               </button>
 
-              <div className="max-w-4xl mb-10">
+              <div className="max-w-3xl mb-8">
                 {selectedProject.badge && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 border border-emerald-300/40 text-emerald-100 px-3.5 py-1 text-sm font-medium mb-5">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 border border-emerald-300/40 text-emerald-100 px-3.5 py-1 text-sm font-medium mb-4">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                     </svg>
                     {selectedProject.badge}
                   </span>
                 )}
-                <h1 className="f-display text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] mb-5">
+                <h1 className="f-display text-3xl md:text-5xl font-bold tracking-tight leading-[1.08] mb-4">
                   {selectedProject.title}
                 </h1>
-                <p className="text-white/80 text-lg sm:text-xl leading-relaxed">{selectedProject.summary}</p>
+                <p className="text-white/80 text-base sm:text-lg leading-relaxed">{selectedProject.summary}</p>
               </div>
 
               {/* Gambar / video */}
               <MediaViewer key={selectedProject.id} project={selectedProject} media={detailMedia} />
 
-              <div className="mt-14 grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-10 xl:gap-16 items-start">
+              <div className="mt-12 grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-10 xl:gap-14 items-start">
                 {/* Kolom kiri: cerita */}
                 <div>
-                  <h2 className="f-display text-2xl font-bold mb-4">Overview</h2>
-                  <p className="text-white/80 text-lg leading-relaxed mb-12">{selectedProject.overview}</p>
+                  <Reveal>
+                    <h2 className="f-display text-xl font-bold mb-3">Overview</h2>
+                    <p className="text-white/80 text-base sm:text-lg leading-relaxed mb-10">{selectedProject.overview}</p>
+                  </Reveal>
 
-                  <h2 className="f-display text-2xl font-bold mb-4">{selectedProject.pointsHeading}</h2>
-                  <div className="divide-y divide-white/15 rounded-3xl bg-white/[0.08] backdrop-blur-md border border-white/15">
-                    {selectedProject.points.map((pt) => (
-                      <div key={pt.title} className="p-6 sm:p-7">
-                        <h3 className="f-display text-lg font-bold mb-2">{pt.title}</h3>
-                        <p className="text-white/80 leading-relaxed">{pt.text}</p>
-                      </div>
+                  <Reveal>
+                    <h2 className="f-display text-xl font-bold mb-3">{selectedProject.pointsHeading}</h2>
+                  </Reveal>
+                  <div className="divide-y divide-white/15 rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/15 overflow-hidden">
+                    {selectedProject.points.map((pt, i) => (
+                      <Reveal key={pt.title} delay={Math.min(i, 3) * 60}>
+                        <div className="p-5 sm:p-6 transition-colors duration-300 hover:bg-white/[0.05]">
+                          <h3 className="f-display text-base font-bold mb-1.5">{pt.title}</h3>
+                          <p className="text-white/80 text-[15px] leading-relaxed">{pt.text}</p>
+                        </div>
+                      </Reveal>
                     ))}
                   </div>
                 </div>
 
                 {/* Kolom kanan: ringkasan */}
-                <aside className="lg:sticky lg:top-28 space-y-6">
-                  <dl className="rounded-3xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-6 space-y-4">
+                <aside className="space-y-5">
+                  <dl className="rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/15 p-5 space-y-4">
                     <div>
                       <dt className="text-white/65 text-sm mb-0.5">Category</dt>
                       <dd className="font-semibold">{selectedProject.category}</dd>
@@ -1012,103 +1664,128 @@ export default function App() {
                       <dt className="text-white/65 text-sm mb-0.5">Role</dt>
                       <dd className="font-semibold">{selectedProject.role}</dd>
                     </div>
+                    {selectedProject.team && (
+                      <div>
+                        <dt className="text-white/65 text-sm mb-0.5">Team</dt>
+                        <dd className="font-semibold">{selectedProject.team}</dd>
+                      </div>
+                    )}
                     {selectedProject.company && (
                       <div>
                         <dt className="text-white/65 text-sm mb-0.5">Company</dt>
                         <dd className="font-semibold">{selectedProject.company}</dd>
                       </div>
                     )}
+                    {selectedProject.contribution && (
+                      <div>
+                        <dt className="text-white/65 text-sm mb-0.5">My contribution</dt>
+                        <dd className="text-white/90 text-[15px] leading-relaxed">{selectedProject.contribution}</dd>
+                      </div>
+                    )}
                   </dl>
 
-                  {selectedProject.highlights.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedProject.highlights.map((h) => (
-                        <div key={h.label} className="rounded-2xl bg-white/[0.08] border border-white/15 p-5">
-                          <p className="f-display text-2xl sm:text-3xl font-bold leading-none mb-2">{h.value}</p>
-                          <p className="text-sm text-white/70 leading-snug">{h.label}</p>
-                        </div>
+                  {detailLinks.length > 0 && (
+                    <div className="space-y-2">
+                      {detailLinks.map((l) => (
+                        <a
+                          key={l.label}
+                          href={l.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`group flex items-center justify-between gap-3 px-5 py-3 rounded-2xl text-sm font-semibold transition-colors ${
+                            l.primary
+                              ? 'btn-shine bg-white text-[#0b1024] hover:bg-white/90'
+                              : 'bg-white/[0.08] border border-white/25 hover:bg-white/[0.16]'
+                          }`}
+                        >
+                          <span>{l.label}</span>
+                          <ExternalIcon />
+                        </a>
                       ))}
                     </div>
                   )}
 
-                  <div className="rounded-3xl bg-white/[0.08] backdrop-blur-md border border-white/15 p-6">
-                    <h2 className="f-display text-lg font-bold mb-4">Tech stack</h2>
+                  {selectedProject.highlights.length > 0 && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedProject.highlights.map((h, i) => (
+                        <Reveal key={h.label} delay={i * 80}>
+                          <div className="h-full rounded-2xl bg-white/[0.07] border border-white/15 p-4">
+                            <p className="f-display text-2xl font-bold leading-none mb-2">
+                              <CountUp value={h.value} />
+                            </p>
+                            <p className="text-sm text-white/70 leading-snug">{h.label}</p>
+                          </div>
+                        </Reveal>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/15 p-5">
+                    <h2 className="f-display text-base font-bold mb-3">Tech stack</h2>
                     <div className="flex flex-wrap gap-2">
                       {selectedProject.tech.map((t) => (
                         <Chip key={t}>{t}</Chip>
                       ))}
                     </div>
                   </div>
-
-                  {selectedProject.links.length > 0 && (
-                    <div className="flex flex-wrap gap-3">
-                      {selectedProject.links.map((l) => (
-                        <a
-                          key={l.label}
-                          href={l.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={`px-6 py-3 font-semibold rounded-full transition-colors text-sm ${
-                            l.primary
-                              ? 'bg-white text-[#141b38] hover:bg-white/90'
-                              : 'bg-white/10 border border-white/35 hover:bg-white/20'
-                          }`}
-                        >
-                          {l.label}
-                        </a>
-                      ))}
-                    </div>
-                  )}
                 </aside>
               </div>
 
               {/* Proyek berikutnya (dalam kelompok yang sama) */}
               {nextProject && (
-                <button
-                  onClick={() => openProject(nextProject)}
-                  className="group mt-20 w-full text-left flex items-center justify-between gap-4 rounded-3xl bg-white/[0.08] backdrop-blur-md border border-white/15 hover:bg-white/[0.13] hover:border-white/35 transition-colors p-6 sm:p-8"
-                >
-                  <span>
-                    <span className="block text-sm text-white/65 mb-1">Next project</span>
-                    <span className="block f-display text-xl sm:text-2xl font-bold">{nextProject.title}</span>
-                  </span>
-                  <ArrowRight />
-                </button>
+                <Reveal className="mt-16">
+                  <button
+                    onClick={() => openProject(nextProject)}
+                    className="group w-full text-left flex items-center justify-between gap-4 rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/15 hover:bg-white/[0.12] hover:border-white/35 transition-colors p-5 sm:p-6"
+                  >
+                    <span>
+                      <span className="block text-sm text-white/65 mb-1">Next project</span>
+                      <span className="block f-display text-lg sm:text-xl font-bold">{nextProject.title}</span>
+                    </span>
+                    <ArrowRight />
+                  </button>
+                </Reveal>
               )}
             </div>
           </main>
         )}
 
         {/* ============ KONTAK ============ */}
-        <section id="contact" className={`${PAD} py-24 scroll-mt-20`}>
-          <div className="mx-auto max-w-4xl rounded-[2rem] bg-white/[0.08] backdrop-blur-md border border-white/20 px-8 py-14 sm:px-14 text-center">
-            <h2 className="f-display text-3xl sm:text-5xl font-bold tracking-tight mb-4">Let&apos;s connect.</h2>
-            <p className="text-white/80 text-lg leading-relaxed mb-10 max-w-xl mx-auto">
-              I&apos;m currently open to new opportunities, internships, and interesting collaborations. If you&apos;re working on something exciting, I&apos;d love to hear about it.
-            </p>
+        <section id="contact" className={`${PAD} py-20 scroll-mt-20`}>
+          <Reveal>
+            <div className="mx-auto max-w-3xl rounded-[2rem] bg-white/[0.07] backdrop-blur-md border border-white/20 px-6 py-12 sm:px-12 text-center">
+              <h2 className="f-display text-3xl sm:text-4xl font-bold tracking-tight mb-4">Let&apos;s connect.</h2>
+              <p className="text-white/80 text-base sm:text-lg leading-relaxed mb-9 max-w-xl mx-auto">
+                I&apos;m currently open to new opportunities, internships, and interesting collaborations. If you&apos;re working on something exciting, I&apos;d love to hear about it.
+              </p>
 
-            <div className="flex flex-wrap gap-3 justify-center">
-              {EMAIL && (
-                <a href={`mailto:${EMAIL}`} className="px-6 py-3 bg-white text-[#141b38] font-semibold rounded-full hover:bg-white/90 transition-colors">
-                  Email me
-                </a>
+              <div className="flex flex-wrap gap-3 justify-center">
+                {EMAIL && (
+                  <a href={`mailto:${EMAIL}`} className="btn-shine px-6 py-3 bg-white text-[#0b1024] font-semibold rounded-full hover:bg-white/90 transition-colors">
+                    Email me
+                  </a>
+                )}
+                {visibleSocials.map((s) => (
+                  <a
+                    key={s.label}
+                    href={s.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-3 bg-white/10 border border-white/35 font-semibold rounded-full hover:bg-white/20 hover:-translate-y-0.5 transition-all duration-300"
+                  >
+                    <SocialIcon name={s.icon} />
+                    {s.label}
+                  </a>
+                ))}
+              </div>
+
+              {IS_DEV && missingSocials.length > 0 && (
+                <p className="mt-6 text-xs text-white/50">
+                  Dev hint: fill in {missingSocials.join(', ')} at the top of App.jsx to show those buttons. This hint only shows while developing.
+                </p>
               )}
-              {visibleSocials.map((s) => (
-                <a
-                  key={s.label}
-                  href={s.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 border border-white/35 font-semibold rounded-full hover:bg-white/20 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d={s.path} />
-                  </svg>
-                  {s.label}
-                </a>
-              ))}
             </div>
-          </div>
+          </Reveal>
 
           <p className="text-white/60 text-sm text-center mt-10">
             © 2026 Radianda Setiawan. Built with React &amp; Tailwind CSS.
