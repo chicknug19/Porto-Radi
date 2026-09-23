@@ -13,10 +13,12 @@ import { useState, useEffect, useRef } from 'react';
 /*  Foto profil: taruh sebagai src/assets/profile.jpg (.jpeg/.png/.webp)*/
 /*  Sertifikat: taruh sertifikat_magang.pdf & sertifikat_AI_azure.pdf  */
 /*  di src/assets/ (dipakai oleh bagian Experience & Certifications).  */
+/*  CV: taruh cv_Radi_english1.pdf & cv_Radi_english1.docx di src/assets/*/
+/*  (dipakai oleh tombol "Download my CV").                            */
 /*  Catatan: fitur ini memakai Vite (import.meta.glob).                */
 /* ------------------------------------------------------------------ */
 
-const assetModules = import.meta.glob('./assets/**/*.{png,jpg,jpeg,webp,gif,mp4,webm,pdf}', {
+const assetModules = import.meta.glob('./assets/**/*.{png,jpg,jpeg,webp,gif,mp4,webm,pdf,docx}', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -70,6 +72,10 @@ function getProjectLinks(p) {
 // Lebar konten utama (ubah max-w-6xl menjadi max-w-5xl / max-w-7xl kalau mau lebih sempit / lebar)
 const WRAP = "mx-auto w-full max-w-6xl";
 const PAD = "px-6 sm:px-8 lg:px-10";
+
+// ---- CV: nama file di src/assets/ (isi salah satu atau keduanya) ----
+const CV_PDF = "cv_Radi_english1.pdf";
+const CV_DOCX = "cv_Radi_english1.docx";
 
 // ---- Kontak: isi tiga baris ini agar tombolnya muncul di bagian "Let's connect" ----
 // Boleh diisi username / nomor saja, atau URL lengkap.
@@ -611,7 +617,6 @@ const projects = [
     ],
     links: [
       { label: "Try the live app (needs a webcam)", href: "https://aol-comvis.vercel.app/", primary: true },
-      // Catatan: link Drive di bawah ini saya anggap video demo; kalau ternyata laporan, ganti labelnya.
       { label: "Watch the demo video", href: "https://drive.google.com/file/d/1bIkkTWAsDnjedLdrEgkgcluCZhZkKkxU/view?usp=sharing" },
       { label: "View the slides (Canva)", href: "https://canva.link/7ibkhnakmq32xy2" },
       { label: "Read the report (PDF)", file: "laporan_comvis.pdf" },
@@ -857,10 +862,7 @@ const projects = [
       { label: "Read the SRS (Google Docs)", href: "https://docs.google.com/document/d/1Nh95T285dmyuxs9D7atajg8gC4WXlZRG9qlUDuJIe4E/edit?usp=sharing" },
       { label: "UML diagrams (Google Docs)", href: "https://docs.google.com/document/d/1CA-N-X9Kq5Inup6SW6VWD7EgPP4dFqL4W6PlSXFB4iQ/edit?usp=sharing" },
       { label: "PKM-KC document (Google Docs)", href: "https://docs.google.com/document/d/1_cf_9uGqMd-wOg3RnSa5iam9iYLX34urFplSut2t03A/edit?tab=t.0" },
-      // PENTING: ini link "edit" Canva. Ganti dengan link "view" dari Canva (Share > Public view link)
-      // supaya pengunjung tidak bisa mengubah desainmu.
       { label: "View the slides (Canva)", href: "https://www.canva.com/design/DAHLbyGgHlA/ebdRKJWSf3puPk_PMvwLgA/edit" },
-      // Repo ini saya asumsikan milik Bookuger (tugas Software Engineering); hapus baris ini kalau salah.
       { label: "View on GitHub", href: "https://github.com/chicknug19/AOL-SE-cuy" },
     ],
   },
@@ -1011,6 +1013,27 @@ body { margin: 0; background: #0f1630; }
 }
 @keyframes marquee { to { transform: translateX(-50%); } }
 
+/* Maskot download CV: melayang, lambaian tangan, dan gelembung bicara berdenyut */
+.mascot-float { animation: mascot-float 3.6s ease-in-out infinite; }
+@keyframes mascot-float { 50% { transform: translateY(-9px); } }
+.mascot-wave { transform-origin: 78% 62%; animation: mascot-wave 2.4s ease-in-out infinite; }
+@keyframes mascot-wave {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-18deg); }
+  20% { transform: rotate(4deg); }
+  30% { transform: rotate(-14deg); }
+  40% { transform: rotate(4deg); }
+}
+.mascot-blink { animation: mascot-blink 4.5s ease-in-out infinite; transform-origin: center; }
+@keyframes mascot-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+.mascot-bubble { animation: bubble-pulse 2.6s ease-in-out infinite; }
+@keyframes bubble-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+.mascot-pop { animation: mascot-pop .35s cubic-bezier(.2,.9,.3,1.3) both; }
+@keyframes mascot-pop { from { opacity: 0; transform: scale(.85) translateY(6px); } to { opacity: 1; transform: none; } }
+
 a:focus-visible, button:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
@@ -1018,7 +1041,8 @@ a:focus-visible, button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .bg-shift, .orb, .rise, .letter, .caret, .blob, .float, .page-in, .fade-in, .marquee-track {
+  .bg-shift, .orb, .rise, .letter, .caret, .blob, .float, .page-in, .fade-in, .marquee-track,
+  .mascot-float, .mascot-wave, .mascot-blink, .mascot-bubble, .mascot-pop {
     animation: none !important;
   }
   .parallax-layer { transform: none !important; }
@@ -1316,9 +1340,6 @@ function MediaViewer({ project, media }) {
     );
   }
 
-  const arrow =
-    'absolute top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-sm border border-white/30 transition-colors';
-
   return (
     <div>
       <div
@@ -1341,12 +1362,22 @@ function MediaViewer({ project, media }) {
 
         {count > 1 && (
           <>
-            <button type="button" onClick={() => go(-1)} aria-label="Previous image" className={`${arrow} left-3`}>
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label="Previous image"
+              className="absolute top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-sm border border-white/30 transition-colors left-3"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <button type="button" onClick={() => go(1)} aria-label="Next image" className={`${arrow} right-3`}>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label="Next image"
+              className="absolute top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-sm border border-white/30 transition-colors right-3"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
               </svg>
@@ -1417,6 +1448,14 @@ function ExternalIcon() {
   return (
     <svg className="w-4 h-4 shrink-0 opacity-80 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 17L17 7M9 7h8v8" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" />
     </svg>
   );
 }
@@ -1717,6 +1756,137 @@ function ExperienceSection() {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Maskot "Download my CV"                                            */
+/*  Robot kecil yang melayang di pojok layar. Klik untuk membuka        */
+/*  pilihan unduh PDF / Word. File dibaca dari CV_PDF / CV_DOCX di atas.*/
+/* ------------------------------------------------------------------ */
+
+function CVMascot() {
+  const [open, setOpen] = useState(false);
+  const [greeted, setGreeted] = useState(false);
+  const boxRef = useRef(null);
+
+  const pdfUrl = getAsset(CV_PDF);
+  const docxUrl = getAsset(CV_DOCX);
+  const hasCv = Boolean(pdfUrl || docxUrl);
+
+  // Sapaan singkat muncul sendiri sekali, beberapa detik setelah halaman dibuka
+  useEffect(() => {
+    if (REDUCED) return undefined;
+    const t = setTimeout(() => setGreeted(true), 2200);
+    const hide = setTimeout(() => setGreeted(false), 7200);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(hide);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  if (!hasCv) {
+    if (IS_DEV) {
+      return (
+        <div className="fixed bottom-5 right-5 z-40 max-w-[13rem] rounded-2xl bg-black/70 border border-white/20 backdrop-blur-sm px-3 py-2 text-xs text-white/70 leading-relaxed">
+          CV mascot hidden: add <code className="px-1 rounded bg-white/10">{CV_PDF}</code> and/or{' '}
+          <code className="px-1 rounded bg-white/10">{CV_DOCX}</code> to <code className="px-1 rounded bg-white/10">src/assets/</code>.
+          This hint only shows while developing.
+        </div>
+      );
+    }
+    return null;
+  }
+
+  const options = [
+    pdfUrl && { label: 'Download as PDF', hint: CV_PDF, href: pdfUrl },
+    docxUrl && { label: 'Download as Word', hint: CV_DOCX, href: docxUrl },
+  ].filter(Boolean);
+
+  return (
+    <div ref={boxRef} className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2">
+      {open && (
+        <div role="menu" className="mascot-pop w-64 rounded-2xl bg-[#141a36] border border-white/25 shadow-xl shadow-black/40 p-2">
+          <p className="px-3 pt-2 pb-1 text-xs uppercase tracking-wide text-white/50">Download my CV</p>
+          {options.map((o) => (
+            <a
+              key={o.label}
+              role="menuitem"
+              href={o.href}
+              download={o.hint}
+              onClick={() => setOpen(false)}
+              className="group flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 hover:bg-white/10 transition-colors"
+            >
+              <span>
+                <span className="block text-sm font-semibold">{o.label}</span>
+                <span className="block text-xs text-white/55">{o.hint}</span>
+              </span>
+              <DownloadIcon />
+            </a>
+          ))}
+        </div>
+      )}
+
+      {!open && greeted && (
+        <div className="fade-in mr-1 rounded-2xl rounded-br-sm bg-white text-[#0b1024] text-sm font-medium px-3.5 py-2 shadow-lg shadow-black/30 mascot-bubble">
+          Download my CV?
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((o) => !o);
+          setGreeted(false);
+        }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Download my CV"
+        title="Download my CV"
+        className="mascot-float group relative flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#3a4c8f] to-[#5c3f8f] border border-white/25 shadow-lg shadow-black/40 hover:shadow-xl transition-shadow"
+      >
+        <svg viewBox="0 0 64 64" className="w-11 h-11" aria-hidden="true">
+          {/* Antena */}
+          <line x1="32" y1="10" x2="32" y2="4" stroke="#cbd5ff" strokeWidth="2.5" strokeLinecap="round" />
+          <circle cx="32" cy="4" r="2.6" fill="#7dd3b0" />
+          {/* Kepala */}
+          <rect x="14" y="12" width="36" height="30" rx="12" fill="#eef1ff" />
+          {/* Mata */}
+          <g className="mascot-blink">
+            <circle cx="25" cy="27" r="3.6" fill="#20264a" />
+            <circle cx="39" cy="27" r="3.6" fill="#20264a" />
+          </g>
+          {/* Senyum */}
+          <path d="M24 34c2.5 3 13.5 3 16 0" stroke="#20264a" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+          {/* Pipi */}
+          <circle cx="19" cy="31" r="2.2" fill="#ff9fb2" opacity="0.7" />
+          <circle cx="45" cy="31" r="2.2" fill="#ff9fb2" opacity="0.7" />
+          {/* Badan */}
+          <rect x="20" y="42" width="24" height="14" rx="6" fill="#dfe3ff" />
+          {/* Tangan melambai */}
+          <g className="mascot-wave">
+            <circle cx="48" cy="40" r="4.4" fill="#eef1ff" />
+          </g>
+          <circle cx="16" cy="46" r="4" fill="#eef1ff" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  App                                                                */
 /* ------------------------------------------------------------------ */
 
@@ -1859,7 +2029,7 @@ export default function App() {
             }`}
           >
             <button onClick={() => goTo('home')} className="f-display font-bold text-lg tracking-tight">
-              Radianda
+              Radianda Setiawan
             </button>
             <div className="flex items-center gap-1 text-sm font-medium">
               {navLinks.map((l) => {
@@ -2216,6 +2386,9 @@ export default function App() {
           </p>
         </section>
       </div>
+
+      {/* Maskot melayang "Download my CV" */}
+      <CVMascot />
     </div>
   );
 }
