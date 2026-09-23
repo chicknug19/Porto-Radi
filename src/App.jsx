@@ -153,19 +153,28 @@ const TYPED_PHRASES = [
 const skillGroups = [
   {
     title: "Languages",
-    items: ["Python", "C#", "TypeScript", "JavaScript", "SQL"],
+    items: ["Python", "C#", "JavaScript", "TypeScript", "Java", "C", "SQL"],
   },
   {
     title: "AI & machine learning",
-    items: ["Scikit-Learn", "Pandas", "NumPy", "OpenCV", "Dlib", "Gemini API", "IndoBERT", "XLM-RoBERTa", "Random Forest", "SMOTE-Tomek", "RAG"],
+    items: [
+      "Scikit-Learn", "Pandas", "NumPy", "OpenCV", "Dlib", "Gemini API", "IndoBERT", "XLM-RoBERTa", "Random Forest", "SMOTE-Tomek", "RAG",
+      "PyTorch", "TensorFlow", "Hugging Face", "Transformer Architectures", "Computer Vision", "NLP", "Data Analysis", "Academic Research",
+    ],
   },
   {
     title: "Web & backend",
-    items: ["React.js", "Tailwind CSS", "Vite", "ASP.NET Core", "ASP.NET MVC", "ASP.NET Web API", "Entity Framework Core", "Dapper ORM", "SQL Server", "REST APIs", "AngularJS", "Flask", "FastAPI", "Playwright"],
+    items: [
+      "React.js", "Next.js", "Node.js", "Tailwind CSS", "Vite", "ASP.NET Core", "ASP.NET MVC", "ASP.NET Web API", "Entity Framework Core",
+      "Dapper ORM", "LINQ", "SQL Server", "REST APIs", "DTO Mapping", "AngularJS", "Flask", "FastAPI", "Playwright",
+    ],
   },
   {
     title: "Cloud & DevOps",
-    items: ["Azure App Services", "Vercel", "Hugging Face Spaces", "Docker", "GitHub Actions", "DVC", "Git", "GitHub", "GitLab", "CI/CD"],
+    items: [
+      "Azure App Services", "Azure DevOps", "Vercel", "Hugging Face Spaces", "Docker", "GitHub Actions", "DVC",
+      "Git", "GitHub", "GitLab", "CI/CD", "MySQL", "PostgreSQL",
+    ],
   },
   {
     title: "Business & domain",
@@ -192,10 +201,13 @@ const experiences = [
     location: "West Jakarta, Indonesia · Hybrid",
     current: true,
     summary:
-      "Architecting and building end-to-end B2B order and fulfillment workflows for a supply chain management and ERP system.",
+      "Architecting end-to-end B2B order and fulfillment workflows for a Supply Chain Management and ERP system, plus the messaging and scraping services around it.",
     points: [
-      "Developed modules for Purchase Orders, Sales Orders, Delivery Orders, and Invoicing.",
-      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+      "Developed modules for Purchase Orders, Sales Orders, Delivery Orders, Invoicing, and real-time inventory tracking, as part of end-to-end B2B order and fulfillment workflows for the ERP system.",
+      "Engineered centralized messaging integrations with WeChat and WhatsApp using C#, ASP.NET Core, and LINQ, and rapidly built and validated full-stack prototypes with React, ASP.NET Core APIs, SQL Server (SSMS), and Microsoft Azure.",
+      "Built an end-to-end automated web scraping system in Python, delivering extracted data through high-performance FastAPI backends and interactive React frontends, with persistence in SQL Server and deployment on Microsoft Azure.",
+      "Designed robust RESTful APIs with Data Transfer Object (DTO) mappings, implementing efficient relational database schemas and optimized queries in SQL Server.",
+      "Configured, deployed, and managed full-stack backend services, background workers, and API endpoints on Microsoft Azure App Services.",
     ],
     skills: [
       "ASP.NET MVC", "ASP.NET Web API", "C#", "Microsoft SQL Server", "Dapper ORM", "REST APIs", "CRUD Operations",
@@ -216,7 +228,9 @@ const experiences = [
       "Built and maintained end-to-end web applications using the Model-View-Controller (MVC) architecture across the frontend, backend, and relational database layers.",
     points: [
       "Built the Omnichannel Messaging & Webhook Integration Service that unifies WeChat and WhatsApp conversations (see the project above).",
-      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+      "Leveraged the Dapper micro-ORM for lightweight, optimized object mapping and high-throughput SQL queries against the database.",
+      "Designed, implemented, and documented robust REST APIs supporting complete CRUD lifecycles for business-critical entity management.",
+      "Structured normalized relational database schemas, authored complex queries, and ensured data integrity across interconnected system modules.",
     ],
     skills: CELLBOX_SKILLS,
     file: "sertifikat_magang.pdf",
@@ -233,8 +247,10 @@ const experiences = [
     summary:
       "Managed end-to-end billing workflows for logistics transactions, from drafting and verifying invoices to reconciling them with delivery orders.",
     points: [
-      "Reconciled invoices against delivery orders to keep every logistics transaction accurate.",
-      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+      "Managed end-to-end billing workflows, including drafting, verifying, and reconciling invoices with delivery orders to ensure accuracy across all logistics transactions.",
+      "Served as the primary operational liaison, communicating with clients, distributors, and delivery couriers to provide shipment updates and resolve fulfillment inquiries.",
+      "Conducted on-site visits to engage with clients and inspect cargo handling, monitored warehouse stock levels, and performed routine physical inventory audits.",
+      "Coordinated multi-channel dispatch schedules between warehouses and third-party couriers to streamline route efficiency and minimize delivery lead times.",
     ],
     skills: [
       "Supply Chain Management", "Logistics Management", "Invoicing", "Client Billing",
@@ -338,7 +354,7 @@ const projects = [
       { value: "Rp 95.7M", label: "estimated loss after tuning, down from Rp 100.65M" },
       { value: "0.172%", label: "fraud share of 284,807 transactions" },
     ],
-    tech: ["Python", "Scikit-Learn", "Random Forest", "SMOTE-Tomek", "Cost-sensitive learning", "PR-AUC"],
+    tech: ["Random Forest", "Fraud Detection", "Data Imbalance (SMOTE/SMOTE-Tomek)", "Cost-Sensitive Learning", "Principal Component Analysis", "Academic Research", "Academic Writing", "Scikit-Learn", "Python"],
     media: [
       { file: "rm1.jpeg", caption: "Title slide from the COMPGINEER 2026 online presentation" },
       { file: "rm2.jpeg", caption: "Methodology slide: from 284,807 raw transactions to a financial-loss estimate" },
@@ -358,11 +374,15 @@ const projects = [
     category: "Artificial Intelligence",
     period: "Aug – Sep 2026",
     role: "AI & Backend Engineer",
-    company: null,
-    summary: "An autonomous engine that collects large-scale competitor product data from Shopee and Tokopedia, filters it with Gemini, and solves slider CAPTCHAs with OpenCV.",
-    overview: "An enterprise-grade, autonomous web scraping engine that extracts large-scale competitor product data from e-commerce platforms (Shopee and Tokopedia) for market analysis and business intelligence. It is designed around fault tolerance, AI integration, and advanced anti-bot evasion.",
+    company: "PT Batavia Satu",
+    summary: "An autonomous engine that scrapes Shopee either broadly by keyword and location, or narrowly from one specific Shopee Store or Shopee Mall, filtering results with Gemini and solving slider CAPTCHAs with OpenCV along the way.",
+    overview: "An enterprise-grade, autonomous web scraping engine, built during my role at PT Batavia Satu, that extracts large-scale competitor product data from Shopee for market analysis and business intelligence. It can scrape broadly by keyword across store locations, or target a specific Shopee Store or Shopee Mall and pull the products listed in that store. It is designed around fault tolerance, AI integration, and advanced anti-bot evasion.",
     pointsHeading: "What I built",
     points: [
+      {
+        title: "Two scraping modes",
+        text: "Supports keyword-based scraping across all store locations with a target-quantity and location filter, and store-based scraping that pulls every product from a specific Shopee Store or Shopee Mall username, optionally narrowed to a product search within that store.",
+      },
       {
         title: "Intelligent AI filtering",
         text: "Integrated the Google Gemini API to parse natural-language scraping intents and filter raw scraped data on its own, so the SQL database only receives highly relevant product variations.",
@@ -385,7 +405,7 @@ const projects = [
       },
     ],
     highlights: [],
-    tech: ["Python", "Gemini API", "Playwright", "OpenCV", "FastAPI", "SQL Server", "pyodbc"],
+    tech: ["Web Scraping", "REST APIs", "Python", "Google Gemini API (LLM)", "Playwright", "OpenCV", "FastAPI", "Microsoft SQL Server"],
     media: ["scrape.jpeg"],
     links: [{ label: "View on GitHub", href: "https://github.com/chicknug19/scraping_ecom" }],
   },
@@ -448,7 +468,7 @@ const projects = [
       { value: "5", label: "architectures benchmarked, from SVM to transformers" },
       { value: "25", label: "errors out of 4,113 test articles (IndoBERT)" },
     ],
-    tech: ["Python", "IndoBERT", "XLM-RoBERTa", "TF-IDF + SVM", "FastAPI", "React.js", "DuckDuckGo", "Wikipedia API", "GitHub Actions", "Hugging Face Spaces"],
+    tech: ["Retrieval-Augmented Generation (RAG)", "Hugging Face Products", "Natural Language Processing (NLP)", "Transformers", "BERT (Language Model)", "Machine Learning", "Deep Learning", "Data Engineering", "FastAPI", "Continuous Integration and Continuous Delivery (CI/CD)"],
     media: [
       { file: "nlp1.jpeg", caption: "Paste a news article and let IndoBERT analyse its writing style" },
       { file: "nlp2.jpeg", caption: "Verdict (FAKTA, 98.21% confidence) with related fact-checking references from the web" },
@@ -517,7 +537,7 @@ const projects = [
       { value: "0.4994", label: "ROC-AUC, an honest near-chance baseline" },
       { value: "51.6%", label: "average 5-fold cross-validation accuracy" },
     ],
-    tech: ["Python", "Scikit-Learn", "SVC (RBF)", "GridSearchCV", "Flask", "React.js", "Docker", "GitHub Actions", "DVC", "yfinance"],
+    tech: ["Data Analysis", "Feature Engineering", "Scikit-Learn", "Machine Learning", "Docker", "Flask", "React.js", "GitHub", "Hugging Face Products", "Full-Stack Development"],
     media: [{ file: "ml1.jpeg", caption: "Prediction result: NAIK (up) with 67.7% confidence and the up/down probabilities" }],
     links: [
       { label: "Try the live app", href: "https://aol-ml-nu.vercel.app/", primary: true },
@@ -584,7 +604,7 @@ const projects = [
       { value: "141", label: "videos in the stress test (47 per class)" },
       { value: "27", label: "threshold combinations searched" },
     ],
-    tech: ["Python", "Dlib", "OpenCV", "Flask", "React.js", "GitHub Actions", "Vercel", "Hugging Face Spaces"],
+    tech: ["Dlib", "Data Streaming", "OpenCV", "Python", "React.js", "Flask", "Computer Vision", "Git", "GitHub", "Continuous Integration and Continuous Delivery (CI/CD)", "Vercel", "Hugging Face Products", "Software Infrastructure", "JavaScript"],
     media: [
       { file: "comvis1.jpeg", caption: "Dashboard before the camera is activated" },
       { file: "comvis2.jpeg", caption: "Live analysis: Alert state with EAR 0.271 and MAR 0.344, landmarks drawn on the eyes and mouth" },
@@ -639,7 +659,7 @@ const projects = [
       },
     ],
     highlights: [{ value: "4", label: "live weather inputs per prediction" }],
-    tech: ["Python", "Scikit-Learn", "Pandas", "NumPy", "FastAPI", "React", "Vite", "Tailwind CSS", "React-Leaflet", "OpenWeatherMap API"],
+    tech: ["REST APIs", "Web Mapping", "Tailwind CSS", "Scikit-Learn", "Python", "FastAPI"],
     media: [
       { file: "fire1.jpeg", caption: "Jambi protected-forest scenario on the satellite map: live weather, mineral soil, low risk (15.3%)" },
       { file: "fire2.jpeg", caption: "Riau peatland scenario in a thunderstorm: peatland is flagged as very fire-prone, verdict low risk (12.7%)" },
@@ -692,7 +712,7 @@ const projects = [
       { value: "2", label: "messaging platforms unified" },
       { value: "Azure", label: "App Services deployment" },
     ],
-    tech: ["C#", "ASP.NET Core", "Entity Framework Core", "SQL Server", "LINQ", "Azure App Services"],
+    tech: ["C#", "ASP.NET Web API", "ASP.NET Core", "Entity Framework (EF) Core", "Language Integrated Query (LINQ)", "Microsoft SQL Server", "Webhook Integration", "WeChat Api", "WhatsApp Api", "Microsoft Azure"],
     media: [
       { file: "wawe1.jpeg", caption: "Unified inbox with WhatsApp [WA] and WeChat [WC] conversations in one list" },
       { file: "wawe2.jpeg", caption: "Conversation view with timestamps, delete buttons, and a downloadable file attachment" },
@@ -736,13 +756,31 @@ const projects = [
       },
     ],
     highlights: [],
-    // TODO: tambahkan bahasa/framework yang kamu pakai di frontend dan backend
-    tech: ["SQL Server", "Responsive UI", "Chatbot"],
-    media: [{ file: "creepydonut1.jpeg", caption: "Landing page with the chatbot button in the corner" }],
+    tech: ["E-Commerce", "ASP.NET Web API", "Chatbot Development", "Database Integration", "SQL Server Management Studio", "Databases", "Full-Stack Development", "TypeScript"],
+    media: [
+      { file: "4.png", caption: "What's inside the deck: Login, Home, Menu, Fundraising, About, Cart, and Order pages" },
+      { file: "5.png", caption: "Login page, with email/phone sign-in or social login" },
+      { file: "6.png", caption: "Register page for creating an account with a secured password" },
+      { file: "7.png", caption: "Forgot password flow: request a reset, then set a new password" },
+      { file: "8.png", caption: "Navigation bar with links to Menu, Fundraising, About Us, and account icons" },
+      { file: "9.png", caption: "Home page: hero banner and the Donuts product row" },
+      { file: "10.png", caption: "Homepage sections: promo banner, Pick Me Up picks, Best Sellers, and footer" },
+      { file: "11.png", caption: "Footer detail: Get Help, Creepy Store, Contact Us, and Follow Us links" },
+      { file: "12.png", caption: "Menu page with Food/Drink/Merch filters and an add-to-cart hover state" },
+      { file: "13.png", caption: "About Us page: brand story and mission" },
+      { file: "14.png", caption: "Fundraising page for the animal-shelter donation drive" },
+      { file: "15.png", caption: "Shopping cart with quantity controls, shipping form, and payment summary" },
+      { file: "16.png", caption: "Account sidebar: My Account, My Order, Change Password, My History" },
+      { file: "17.png", caption: "Account page with editable personal information" },
+      { file: "18.png", caption: "Orders page with order status and an order-summary modal" },
+      { file: "19.png", caption: "Order history with past purchases and a detail modal" },
+      { file: "20.png", caption: "Chatbot assistant available on every page" },
+    ],
     links: [
-      { label: "View the slides (Canva)", href: "https://www.canva.com/design/DAGoi6cdJ-4/3F4wMEwjf8IfoOwOUWs6wA/view", primary: true },
+      { label: "Open interactive prototype (Figma)", href: "https://www.figma.com/proto/cjN5E2QRuxalcMHP6aTT92/CreepyDonut?node-id=17-69&t=B1B98CyS14ENR6Ix-1&starting-point-node-id=17%3A69", primary: true },
       { label: "Frontend repo", href: "https://github.com/chicknug19/CreepyDonutFE" },
       { label: "Backend repo", href: "https://github.com/chicknug19/backendCreepyDonut" },
+      { label: "Original slide deck (Canva)", href: "https://www.canva.com/design/DAGoi6cdJ-4/3F4wMEwjf8IfoOwOUWs6wA/view" },
     ],
   },
   {
@@ -800,7 +838,7 @@ const projects = [
       { value: "Rp 2,000", label: "late fee per day, calculated automatically" },
       { value: "5", label: "risks analysed with mitigation plans" },
     ],
-    tech: ["React.js", "ASP.NET Core", "C#", "Entity Framework Core", "SQL Server", "JWT", "Azure App Service", "Vercel", "GitHub Actions"],
+    tech: ["C#", "Object-Relational Mapping (ORM)", "React.js", "ASP.NET Core", "Entity Framework (EF) Core", "Microsoft SQL Server", "Computer Hardware", "Docker", "Cloud Deployment"],
     media: [
       { file: "se_uhomepage.jpeg", caption: "Member home page" },
       { file: "se_uhomepage1.jpeg", caption: "Member home page, second view" },
