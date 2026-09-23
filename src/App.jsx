@@ -153,19 +153,28 @@ const TYPED_PHRASES = [
 const skillGroups = [
   {
     title: "Languages",
-    items: ["Python", "C#", "TypeScript", "JavaScript", "SQL"],
+    items: ["Python", "C#", "JavaScript", "TypeScript", "Java", "C", "SQL"],
   },
   {
     title: "AI & machine learning",
-    items: ["Scikit-Learn", "Pandas", "NumPy", "OpenCV", "Dlib", "Gemini API", "IndoBERT", "XLM-RoBERTa", "Random Forest", "SMOTE-Tomek", "RAG"],
+    items: [
+      "Scikit-Learn", "Pandas", "NumPy", "OpenCV", "Dlib", "Gemini API", "IndoBERT", "XLM-RoBERTa", "Random Forest", "SMOTE-Tomek", "RAG",
+      "PyTorch", "TensorFlow", "Hugging Face", "Transformer Architectures", "Computer Vision", "NLP", "Data Analysis", "Academic Research",
+    ],
   },
   {
     title: "Web & backend",
-    items: ["React.js", "Tailwind CSS", "Vite", "ASP.NET Core", "ASP.NET MVC", "ASP.NET Web API", "Entity Framework Core", "Dapper ORM", "SQL Server", "REST APIs", "AngularJS", "Flask", "FastAPI", "Playwright"],
+    items: [
+      "React.js", "Next.js", "Node.js", "Tailwind CSS", "Vite", "ASP.NET Core", "ASP.NET MVC", "ASP.NET Web API", "Entity Framework Core",
+      "Dapper ORM", "LINQ", "SQL Server", "REST APIs", "DTO Mapping", "AngularJS", "Flask", "FastAPI", "Playwright",
+    ],
   },
   {
     title: "Cloud & DevOps",
-    items: ["Azure App Services", "Vercel", "Hugging Face Spaces", "Docker", "GitHub Actions", "DVC", "Git", "GitHub", "GitLab", "CI/CD"],
+    items: [
+      "Azure App Services", "Azure DevOps", "Vercel", "Hugging Face Spaces", "Docker", "GitHub Actions", "DVC",
+      "Git", "GitHub", "GitLab", "CI/CD", "MySQL", "PostgreSQL",
+    ],
   },
   {
     title: "Business & domain",
@@ -192,10 +201,13 @@ const experiences = [
     location: "West Jakarta, Indonesia · Hybrid",
     current: true,
     summary:
-      "Architecting and building end-to-end B2B order and fulfillment workflows for a supply chain management and ERP system.",
+      "Architecting end-to-end B2B order and fulfillment workflows for a Supply Chain Management and ERP system, plus the messaging and scraping services around it.",
     points: [
-      "Developed modules for Purchase Orders, Sales Orders, Delivery Orders, and Invoicing.",
-      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+      "Developed modules for Purchase Orders, Sales Orders, Delivery Orders, Invoicing, and real-time inventory tracking, as part of end-to-end B2B order and fulfillment workflows for the ERP system.",
+      "Engineered centralized messaging integrations with WeChat and WhatsApp using C#, ASP.NET Core, and LINQ, and rapidly built and validated full-stack prototypes with React, ASP.NET Core APIs, SQL Server (SSMS), and Microsoft Azure.",
+      "Built an end-to-end automated web scraping system in Python, delivering extracted data through high-performance FastAPI backends and interactive React frontends, with persistence in SQL Server and deployment on Microsoft Azure.",
+      "Designed robust RESTful APIs with Data Transfer Object (DTO) mappings, implementing efficient relational database schemas and optimized queries in SQL Server.",
+      "Configured, deployed, and managed full-stack backend services, background workers, and API endpoints on Microsoft Azure App Services.",
     ],
     skills: [
       "ASP.NET MVC", "ASP.NET Web API", "C#", "Microsoft SQL Server", "Dapper ORM", "REST APIs", "CRUD Operations",
@@ -216,7 +228,9 @@ const experiences = [
       "Built and maintained end-to-end web applications using the Model-View-Controller (MVC) architecture across the frontend, backend, and relational database layers.",
     points: [
       "Built the Omnichannel Messaging & Webhook Integration Service that unifies WeChat and WhatsApp conversations (see the project above).",
-      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+      "Leveraged the Dapper micro-ORM for lightweight, optimized object mapping and high-throughput SQL queries against the database.",
+      "Designed, implemented, and documented robust REST APIs supporting complete CRUD lifecycles for business-critical entity management.",
+      "Structured normalized relational database schemas, authored complex queries, and ensured data integrity across interconnected system modules.",
     ],
     skills: CELLBOX_SKILLS,
     file: "sertifikat_magang.pdf",
@@ -233,8 +247,10 @@ const experiences = [
     summary:
       "Managed end-to-end billing workflows for logistics transactions, from drafting and verifying invoices to reconciling them with delivery orders.",
     points: [
-      "Reconciled invoices against delivery orders to keep every logistics transaction accurate.",
-      // TODO: tempel sisa deskripsi dari LinkedIn di sini
+      "Managed end-to-end billing workflows, including drafting, verifying, and reconciling invoices with delivery orders to ensure accuracy across all logistics transactions.",
+      "Served as the primary operational liaison, communicating with clients, distributors, and delivery couriers to provide shipment updates and resolve fulfillment inquiries.",
+      "Conducted on-site visits to engage with clients and inspect cargo handling, monitored warehouse stock levels, and performed routine physical inventory audits.",
+      "Coordinated multi-channel dispatch schedules between warehouses and third-party couriers to streamline route efficiency and minimize delivery lead times.",
     ],
     skills: [
       "Supply Chain Management", "Logistics Management", "Invoicing", "Client Billing",
