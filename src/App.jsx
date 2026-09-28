@@ -16,6 +16,8 @@ import { useState, useEffect, useRef } from 'react';
 /*  CV: taruh cv_Radi_english1.pdf & cv_Radi_english1.docx di src/assets/*/
 /*  (dipakai oleh tombol "Download my CV").                            */
 /*  Catatan: fitur ini memakai Vite (import.meta.glob).                */
+/*  Fitur interaktif: medan titik di hero, filter teknologi di Projects,*/
+/*  dan pencarian cepat Ctrl/⌘ + K.                                    */
 /* ------------------------------------------------------------------ */
 
 const assetModules = import.meta.glob('./assets/**/*.{png,jpg,jpeg,webp,gif,mp4,webm,pdf,docx}', {
@@ -869,6 +871,35 @@ const projects = [
 ];
 
 /* ------------------------------------------------------------------ */
+/*  FILTER TEKNOLOGI — klik teknologi, project yang memakainya menyala */
+/*  Tambah / ubah teknologi di daftar STACK_FILTERS. `words` dicari di  */
+/*  tech, ringkasan, overview, dan poin-poin setiap project.           */
+/* ------------------------------------------------------------------ */
+
+const STACK_FILTERS = [
+  { key: 'python', label: 'Python', words: ['python'] },
+  { key: 'react', label: 'React', words: ['react'] },
+  { key: 'fastapi', label: 'FastAPI', words: ['fastapi'] },
+  { key: 'flask', label: 'Flask', words: ['flask'] },
+  { key: 'dotnet', label: 'C# & ASP.NET', words: ['asp.net', 'c#'] },
+  { key: 'sql', label: 'SQL Server', words: ['sql server'] },
+  { key: 'vision', label: 'Computer vision', words: ['opencv', 'dlib', 'computer vision'] },
+  { key: 'nlp', label: 'NLP', words: ['nlp', 'natural language', 'bert'] },
+  { key: 'hf', label: 'Hugging Face', words: ['hugging face'] },
+];
+
+const HAYSTACKS = new Map(
+  projects.map((p) => [
+    p.id,
+    [p.tech.join(' '), p.summary, p.overview, ...p.points.map((x) => `${x.title} ${x.text}`)].join(' ').toLowerCase(),
+  ])
+);
+const projectUses = (p, f) => f.words.some((w) => HAYSTACKS.get(p.id).includes(w));
+const FILTER_OPTIONS = STACK_FILTERS.map((f) => ({ ...f, count: projects.filter((p) => projectUses(p, f)).length })).filter(
+  (f) => f.count > 0
+);
+
+/* ------------------------------------------------------------------ */
 /*  STYLE — background berganti warna + font + animasi                 */
 /*  Ubah warna background di baris `.bg-shift` (5 warna, lalu kembali) */
 /* ------------------------------------------------------------------ */
@@ -984,6 +1015,20 @@ body { margin: 0; background: #0f1630; }
   transition: transform .18s ease-out, background-color .3s, border-color .3s;
   will-change: transform;
 }
+
+/* Cahaya lembut yang mengikuti kursor di dalam kartu proyek */
+.spot { position: relative; }
+.spot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .35s;
+  background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), rgba(190,225,255,.16), transparent 62%);
+}
+.spot:hover::before { opacity: 1; }
 
 /* Tombol putih dengan kilatan saat di-hover */
 .btn-shine { position: relative; overflow: hidden; }
@@ -1460,7 +1505,331 @@ function DownloadIcon() {
   );
 }
 
-function ProjectCard({ project, onOpen }) {
+// Hero: 68 titik "landmark" (angka yang sama dengan model Dlib di project Drowsiness) melayang pelan.
+// Saat kursor mendekat, titik menjauh dan tersambung ke kursor. Berhenti sendiri saat tidak terlihat.
+function HeroField() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const host = canvas && canvas.parentElement;
+    const ctx = canvas && canvas.getContext('2d');
+    if (!canvas || !host || !ctx) return undefined;
+
+    const mouse = { x: 0, y: 0, active: false };
+    let pts = [];
+    let w = 0;
+    let h = 0;
+    let raf = 0;
+    let running = false;
+    let inView = false;
+
+    const draw = (step) => {
+      ctx.clearRect(0, 0, w, h);
+      const REACH = 170;
+
+      if (step) {
+        for (const p of pts) {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (mouse.active) {
+            const dx = p.x - mouse.x;
+            const dy = p.y - mouse.y;
+            const d = Math.hypot(dx, dy);
+            if (d < 120 && d > 0.1) {
+              const f = (120 - d) * 0.012;
+              p.x += (dx / d) * f;
+              p.y += (dy / d) * f;
+            }
+          }
+          if (p.x < 0 || p.x > w) {
+            p.vx *= -1;
+            p.x = Math.min(Math.max(p.x, 0), w);
+          }
+          if (p.y < 0 || p.y > h) {
+            p.vy *= -1;
+            p.y = Math.min(Math.max(p.y, 0), h);
+          }
+        }
+      }
+
+      ctx.lineWidth = 1;
+      for (let i = 0; i < pts.length; i += 1) {
+        for (let j = i + 1; j < pts.length; j += 1) {
+          const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+          if (d < 130) {
+            ctx.strokeStyle = `rgba(170,190,255,${(1 - d / 130) * 0.16})`;
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      for (const p of pts) {
+        const near = mouse.active ? Math.hypot(p.x - mouse.x, p.y - mouse.y) : Infinity;
+        if (near < REACH) {
+          ctx.strokeStyle = `rgba(125,220,240,${(1 - near / REACH) * 0.55})`;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(mouse.x, mouse.y);
+          ctx.stroke();
+        }
+        ctx.fillStyle = near < REACH ? 'rgba(160,235,250,.95)' : 'rgba(200,214,255,.5)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, near < REACH ? 2.4 : 1.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    const resize = () => {
+      const r = host.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = r.width;
+      h = r.height;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const count = w < 640 ? 40 : 68;
+      pts = Array.from({ length: count }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.28,
+        vy: (Math.random() - 0.5) * 0.28,
+      }));
+      draw(false);
+    };
+
+    const loop = () => {
+      if (!running) return;
+      draw(true);
+      raf = requestAnimationFrame(loop);
+    };
+    const sync = () => {
+      const shouldRun = inView && !document.hidden && !REDUCED;
+      if (shouldRun && !running) {
+        running = true;
+        raf = requestAnimationFrame(loop);
+      } else if (!shouldRun && running) {
+        running = false;
+        cancelAnimationFrame(raf);
+      }
+    };
+
+    const onMove = (e) => {
+      if (e.pointerType === 'touch') return;
+      const r = host.getBoundingClientRect();
+      mouse.x = e.clientX - r.left;
+      mouse.y = e.clientY - r.top;
+      mouse.active = true;
+    };
+    const onLeave = () => {
+      mouse.active = false;
+    };
+
+    const ro = new ResizeObserver(resize);
+    ro.observe(host);
+    const io = new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting;
+      sync();
+    });
+    io.observe(host);
+    host.addEventListener('pointermove', onMove);
+    host.addEventListener('pointerleave', onLeave);
+    document.addEventListener('visibilitychange', sync);
+    resize();
+
+    return () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      io.disconnect();
+      host.removeEventListener('pointermove', onMove);
+      host.removeEventListener('pointerleave', onLeave);
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="fade-in pointer-events-none absolute inset-0 h-full w-full"
+      style={{
+        // Inline supaya canvas tidak pernah ikut menambah tinggi halaman, bahkan sebelum CSS Tailwind termuat
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        WebkitMaskImage: 'linear-gradient(to bottom, #000 65%, transparent)',
+        maskImage: 'linear-gradient(to bottom, #000 65%, transparent)',
+      }}
+    />
+  );
+}
+
+// Baris teknologi di atas daftar project: klik satu, project yang memakainya tetap terang, sisanya meredup.
+function StackFilter({ active, onChange, total }) {
+  const current = FILTER_OPTIONS.find((f) => f.key === active);
+  return (
+    <Reveal className="mb-14">
+      <div role="group" aria-label="Filter projects by technology" className="flex flex-wrap items-center gap-2">
+        {FILTER_OPTIONS.map((f) => {
+          const on = f.key === active;
+          return (
+            <button
+              key={f.key}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onChange(on ? null : f.key)}
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-300 ${
+                on
+                  ? 'scale-105 border-white bg-white text-[#0b1024]'
+                  : 'border-white/25 bg-white/[0.07] text-white/85 hover:bg-white/15'
+              }`}
+            >
+              {f.label}
+              <span className={`text-xs tabular-nums ${on ? 'text-[#0b1024]/60' : 'text-white/50'}`}>{f.count}</span>
+            </button>
+          );
+        })}
+        {active && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="rounded-full border border-dashed border-white/35 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
+          >
+            Clear filter
+          </button>
+        )}
+      </div>
+      <p aria-live="polite" className="mt-3 text-sm text-white/65">
+        {current
+          ? `${current.count} of ${total} projects ${current.count === 1 ? 'uses' : 'use'} ${current.label}. The rest are dimmed.`
+          : 'Pick a technology to highlight the projects that use it.'}
+      </p>
+    </Reveal>
+  );
+}
+
+// Pencarian cepat (Ctrl/⌘ + K): lompat ke section atau project, atau ketik nama teknologi.
+function CommandPalette({ open, onClose, items, onSelect }) {
+  const [query, setQuery] = useState('');
+  const [index, setIndex] = useState(0);
+  const inputRef = useRef(null);
+  const listRef = useRef(null);
+
+  const q = query.trim().toLowerCase();
+  const results = q ? items.filter((i) => `${i.label} ${i.hint} ${i.keywords}`.toLowerCase().includes(q)) : items;
+  const safeIndex = Math.min(index, Math.max(results.length - 1, 0));
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const previous = document.activeElement;
+    setQuery('');
+    setIndex(0);
+    const t = setTimeout(() => inputRef.current && inputRef.current.focus(), 0);
+    return () => {
+      clearTimeout(t);
+      if (previous && previous.focus) previous.focus({ preventScroll: true });
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const el = listRef.current && listRef.current.children[safeIndex];
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+  }, [safeIndex, open]);
+
+  if (!open) return null;
+
+  const onKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setIndex(results.length ? (safeIndex + 1) % results.length : 0);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setIndex(results.length ? (safeIndex - 1 + results.length) % results.length : 0);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (results[safeIndex]) onSelect(results[safeIndex]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+    }
+  };
+
+  return (
+    <div
+      className="fade-in fixed inset-0 z-[70] flex items-start justify-center bg-black/55 px-4 pt-[14vh] backdrop-blur-sm"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search portfolio"
+        className="mascot-pop w-full max-w-xl overflow-hidden rounded-3xl border border-white/25 bg-[#141a36] shadow-2xl shadow-black/50"
+      >
+        <div className="flex items-center gap-3 border-b border-white/15 px-5 py-4">
+          <svg className="h-5 w-5 shrink-0 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.3-4.3M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
+          </svg>
+          <input
+            ref={inputRef}
+            autoFocus
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setIndex(0);
+            }}
+            onKeyDown={onKeyDown}
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="palette-list"
+            aria-activedescendant={results[safeIndex] ? `palette-opt-${results[safeIndex].id}` : undefined}
+            placeholder="Search a project, section, or technology"
+            className="w-full bg-transparent text-base text-white placeholder-white/45 outline-none"
+          />
+        </div>
+
+        <ul ref={listRef} id="palette-list" role="listbox" className="max-h-[50vh] overflow-y-auto p-2">
+          {results.map((item, i) => (
+            <li
+              key={item.id}
+              id={`palette-opt-${item.id}`}
+              role="option"
+              aria-selected={i === safeIndex}
+              onMouseMove={() => setIndex(i)}
+              onClick={() => onSelect(item)}
+              className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl px-4 py-2.5 transition-colors ${
+                i === safeIndex ? 'bg-white/15' : ''
+              }`}
+            >
+              <span className="truncate text-sm font-medium">{item.label}</span>
+              <span className="shrink-0 text-xs text-white/55">{item.hint}</span>
+            </li>
+          ))}
+          {results.length === 0 && (
+            <li className="px-4 py-6 text-center text-sm text-white/65">
+              Nothing matches &ldquo;{query}&rdquo;. Try a technology such as Python or FastAPI.
+            </li>
+          )}
+        </ul>
+
+        <p className="hidden border-t border-white/15 px-5 py-3 text-xs text-white/50 sm:block">
+          Arrow keys to move, Enter to open, Esc to close
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ProjectCard({ project, onOpen, dim = false }) {
   const ref = useRef(null);
   const media = getProjectMedia(project);
   const shownTech = project.tech.slice(0, 4);
@@ -1476,6 +1845,8 @@ function ProjectCard({ project, onOpen }) {
     const py = (e.clientY - r.top) / r.height;
     el.style.setProperty('--rx', `${(0.5 - py) * 6}deg`);
     el.style.setProperty('--ry', `${(px - 0.5) * 8}deg`);
+    el.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    el.style.setProperty('--my', `${e.clientY - r.top}px`);
   };
   const onLeave = () => {
     const el = ref.current;
@@ -1491,7 +1862,7 @@ function ProjectCard({ project, onOpen }) {
       onClick={() => onOpen(project)}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
-      className="tilt group flex flex-col h-full w-full text-left rounded-3xl overflow-hidden bg-white/[0.07] backdrop-blur-md border border-white/15 hover:bg-white/[0.12] hover:border-white/35"
+      className="tilt spot group flex flex-col h-full w-full text-left rounded-3xl overflow-hidden bg-white/[0.07] backdrop-blur-md border border-white/15 hover:bg-white/[0.12] hover:border-white/35"
     >
       <CardMedia project={project} media={media} />
       <span className="flex flex-col flex-1 p-5">
@@ -1896,6 +2267,8 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [stackFilter, setStackFilter] = useState(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const menuRef = useRef(null);
   const typed = useTypewriter(TYPED_PHRASES);
 
@@ -1971,6 +2344,18 @@ export default function App() {
     };
   }, [menuOpen]);
 
+  // Ctrl/⌘ + K membuka pencarian cepat
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const openProject = (project) => {
     setMenuOpen(false);
     setSelectedProject(project);
@@ -2004,6 +2389,7 @@ export default function App() {
   const backTarget = selectedProject && selectedProject.group === 'ai' ? 'ai-projects' : 'software-projects';
   const backLabel = selectedProject && selectedProject.group === 'ai' ? 'Back to AI projects' : 'Back to software projects';
 
+  const activeFilter = FILTER_OPTIONS.find((f) => f.key === stackFilter) || null;
   const visibleSocials = SOCIALS.filter((s) => s.href && s.href !== '#');
   const missingSocials = [
     !WHATSAPP && 'WHATSAPP',
@@ -2023,6 +2409,21 @@ export default function App() {
 
   const marqueeTop = [...skillGroups[0].items, ...skillGroups[1].items];
   const marqueeBottom = [...skillGroups[2].items, ...skillGroups[3].items, ...skillGroups[4].items];
+
+  const paletteItems = [
+    ...navLinks.map((l) => ({ id: `nav-${l.id}`, label: l.label, hint: 'Section', keywords: '', run: () => goTo(l.id) })),
+    ...projects.map((p) => ({
+      id: `project-${p.id}`,
+      label: p.title,
+      hint: p.group === 'ai' ? 'AI project' : 'Software project',
+      keywords: `${p.category} ${p.tech.join(' ')}`,
+      run: () => openProject(p),
+    })),
+  ];
+  const selectPaletteItem = (item) => {
+    setPaletteOpen(false);
+    item.run();
+  };
 
   return (
     <div className="relative min-h-screen text-white f-body overflow-x-hidden">
@@ -2080,6 +2481,19 @@ export default function App() {
                 })}
               </div>
 
+              <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                aria-label="Search portfolio (Ctrl K)"
+                title="Search (Ctrl K)"
+                className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.3-4.3M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
+                </svg>
+              </button>
+
               {/* Tombol hamburger untuk HP */}
               <button
                 type="button"
@@ -2097,6 +2511,7 @@ export default function App() {
                   )}
                 </svg>
               </button>
+              </div>
             </nav>
 
             {/* Panel menu HP */}
@@ -2129,8 +2544,9 @@ export default function App() {
         {currentView === 'home' && (
           <main>
             {/* Hero */}
-            <section id="home" className={`${PAD} pt-32 pb-20 min-h-screen flex items-center`}>
-              <div className={`${WRAP} grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center`}>
+            <section id="home" className={`${PAD} relative pt-32 pb-20 min-h-screen flex items-center`}>
+              <HeroField />
+              <div className={`${WRAP} relative z-10 grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center`}>
                 <div className="text-center lg:text-left">
                   <div className="rise inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm text-white/90 mb-7">
                     <span className="relative flex w-2 h-2">
@@ -2243,7 +2659,9 @@ export default function App() {
 
             {/* Projects: dipisah AI dan Software */}
             <section id="projects" className={`${PAD} py-20`}>
-              <div className={`${WRAP} space-y-24`}>
+              <div className={WRAP}>
+                <StackFilter active={stackFilter} onChange={setStackFilter} total={projects.length} />
+                <div className="space-y-24">
                 {sections.map((s) => (
                   <div key={s.id} id={s.id} className="scroll-mt-24">
                     <Reveal className="mb-8 max-w-2xl">
@@ -2255,12 +2673,19 @@ export default function App() {
                         .filter((p) => p.group === s.group)
                         .map((p, i) => (
                           <Reveal key={p.id} delay={(i % 3) * 100} className="h-full">
-                            <ProjectCard project={p} onOpen={openProject} />
+                            <div
+                              className={`h-full transition-all duration-500 ${
+                                activeFilter && !projectUses(p, activeFilter) ? 'scale-[.97] opacity-30 saturate-0' : ''
+                              }`}
+                            >
+                              <ProjectCard project={p} onOpen={openProject} />
+                            </div>
                           </Reveal>
                         ))}
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             </section>
           </main>
@@ -2460,6 +2885,8 @@ export default function App() {
           </p>
         </section>
       </div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} onSelect={selectPaletteItem} />
 
       {/* Maskot melayang "Download my CV" */}
       <CVMascot />
