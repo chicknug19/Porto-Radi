@@ -76,8 +76,8 @@ const WRAP = "mx-auto w-full max-w-6xl";
 const PAD = "px-6 sm:px-8 lg:px-10";
 
 // ---- CV: nama file di src/assets/ (isi salah satu atau keduanya) ----
-const CV_PDF = "cv_Radi_english1.pdf";
-const CV_DOCX = "cv_Radi_english1.docx";
+const CV_PDF = "CV_Radianda_Setiawan.pdf";
+const CV_DOCX = "CV_Radianda_Setiawan.docx";
 
 // ---- Kontak: isi tiga baris ini agar tombolnya muncul di bagian "Let's connect" ----
 // Boleh diisi username / nomor saja, atau URL lengkap.
